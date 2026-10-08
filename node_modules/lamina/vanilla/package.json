@@ -1,6 +1,0 @@
-{
-  "main": "lamina.cjs.js",
-  "module": "lamina.es.js",
-  "type": "module",
-  "types": "vanilla.d.ts"
-}
