@@ -26,9 +26,9 @@ export function SideWall() {
 
 export function FrontWall() {
   return (
-    <RigidBody type="fixed">
-      <mesh position={[-13, 2, 0]}>
-        <boxGeometry args={[1, 7, 27]} />
+    <RigidBody type="fixed" >
+      <mesh position={[-13, -0.925, 0]} >
+        <boxGeometry args={[1, 1.125, 27]} />
         <meshStandardMaterial color="#888888" />
       </mesh>
     </RigidBody>

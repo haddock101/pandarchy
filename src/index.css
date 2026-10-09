@@ -117,3 +117,11 @@ code {
     border:0;
     width:100vw;
 }
+.statsContainer {
+    pointer-events:visible !important;
+    position: fixed !important;
+    bottom: 0.4rem !important;
+    right: 0.4rem !important;
+    top: unset !important;
+    left: unset !important;
+}

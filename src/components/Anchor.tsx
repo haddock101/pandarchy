@@ -1,8 +1,9 @@
 import { useRef } from "react";
 import { RapierRigidBody, RigidBody } from "@react-three/rapier";
-function Box({ bounceMultiplier }: {bounceMultiplier: number;}) {
+function Anchor({ bounceMultiplier }: {bounceMultiplier: number;}) {
   const ref = useRef<RapierRigidBody>(null);
   const handleJump = () => {
+    console.log(ref);
       // Apply an upward impulse on the y-axis
     if (ref.current) {
       ref.current.applyTorqueImpulse({ x: 0, y: 0.005, z: 0.001 }, true);
@@ -10,23 +11,18 @@ function Box({ bounceMultiplier }: {bounceMultiplier: number;}) {
     }
   }
   return (
-    <RigidBody name="pinkbox" ref={ref} colliders="cuboid" >
+    <RigidBody ref={ref} >
       <mesh
-        position={[8, 5, 8]}
-        rotation={[
-          (Math.PI / 180) * 3,
-          (Math.PI / 180) * 40,
-          (Math.PI / 180) * 75,
-        ]}
+        position={[0, 0, 0]}
         onClick={() => {
-          console.log("n")
+          console.log("d");
           handleJump()
         }}
       >
-        <boxGeometry args={[3, 3, 3]} />
+        <boxGeometry args={[0.4, 0.4, 0.4]} />
         <meshStandardMaterial color="hotpink" />
       </mesh>
     </RigidBody>
   );
 }
-export default Box;
+export default Anchor;

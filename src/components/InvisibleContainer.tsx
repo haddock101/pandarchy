@@ -1,6 +1,6 @@
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 
-const InvisibleWall1 = ({ opacity }: { opacity: number; }) => {
+const InvisibleWall1 = ({ visible, opacity }: { visible: boolean; opacity: number; }) => {
   return (
     // Creates a fixed, invisible cuboid collider
     <RigidBody
@@ -21,13 +21,13 @@ const InvisibleWall1 = ({ opacity }: { opacity: number; }) => {
       />
       <mesh>
         <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="white" transparent={true} opacity={opacity} />
+        <meshBasicMaterial color="white" transparent={true} opacity={opacity} visible={visible} />
       </mesh>
     </RigidBody>
   );
 };
 
-const InvisibleWall2 = ({ opacity }: { opacity: number; }) => {
+const InvisibleWall2 = ({ visible, opacity }: { visible: boolean; opacity: number; }) => {
   return (
     // Creates a fixed, invisible cuboid collider
     <RigidBody
@@ -48,12 +48,12 @@ const InvisibleWall2 = ({ opacity }: { opacity: number; }) => {
       />
       <mesh>
         <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="white" transparent={true} opacity={opacity} />
+        <meshBasicMaterial color="white" transparent={true} opacity={opacity} visible={visible} />
       </mesh>
     </RigidBody>
   );
 };
-const InvisibleWall3 = ({ opacity }: { opacity: number; }) => {
+const InvisibleWall3 = ({ visible, opacity }: { visible: boolean; opacity: number; }) => {
   return (
     // Creates a fixed, invisible cuboid collider
     <RigidBody
@@ -74,12 +74,12 @@ const InvisibleWall3 = ({ opacity }: { opacity: number; }) => {
       />
       <mesh>
         <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="white" transparent={true} opacity={opacity} />
+        <meshBasicMaterial color="white" transparent={true} opacity={opacity} visible={visible} />
       </mesh>
     </RigidBody>
   );
 };
-const InvisibleWall4 = ({ opacity }: { opacity: number; }) => {
+const InvisibleWall4 = ({ visible, opacity }: { visible: boolean; opacity: number; }) => {
   return (
     // Creates a fixed, invisible cuboid collider
     <RigidBody
@@ -100,13 +100,13 @@ const InvisibleWall4 = ({ opacity }: { opacity: number; }) => {
       />
       <mesh>
         <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="white" transparent={true} opacity={opacity} />
+        <meshBasicMaterial color="white" transparent={true} opacity={opacity} visible={visible} />
       </mesh>
     </RigidBody>
   );
 };
 
-export function InvisibleContainer({ opacity }: { opacity: number; }) {
+export function InvisibleContainer({ visible, opacity }: { visible: boolean;  opacity: number; }) {
 
   return (
     // Creates a fixed, invisible cuboid collider
@@ -130,13 +130,14 @@ export function InvisibleContainer({ opacity }: { opacity: number; }) {
         />
         <mesh>
           <boxGeometry args={[1, 1, 1]} />
-          <meshBasicMaterial color="white" transparent={true} opacity={ opacity }  />
+          <meshBasicMaterial color="white" transparent={true} opacity={ opacity } visible={ visible }  />
         </mesh>
       </RigidBody>
-      <InvisibleWall1 opacity={ opacity } />
-      <InvisibleWall2 opacity={ opacity } />
-      <InvisibleWall3 opacity={ opacity } />
-      <InvisibleWall4 opacity={ opacity } />
+      <InvisibleWall1 opacity={ opacity } visible={ visible } />
+      <InvisibleWall2 opacity={ opacity } visible={ visible } />
+      <InvisibleWall3 opacity={ opacity } visible={ visible } />
+      <InvisibleWall4 opacity={ opacity } visible={ visible } />
     </>
   );
 }
+export default InvisibleContainer;

@@ -3,13 +3,13 @@ import { useFrame /*, useLoader  */ } from "@react-three/fiber";
 import { RapierRigidBody, RigidBody } from "@react-three/rapier";
 
 // A bouncing ball that responds to user clicks by jumping
-export function BouncingBall() {
+export function BouncingBall({ bounceMultiplier }: {bounceMultiplier: number;}) {
   const [color, setColor] = useState("orange");
   const ballRef = useRef<RapierRigidBody>(null);
   const handleJump = () => {
       // Apply an upward impulse on the y-axis
     if (ballRef.current) {
-      ballRef.current.applyImpulse({ x: 0, y: 0.01, z: 0 }, true)
+      ballRef.current.applyImpulse({ x: (1-Math.random()) * 0.01 * bounceMultiplier, y: 0.02 * bounceMultiplier, z: (1-Math.random()) * 0.01 * bounceMultiplier }, true)
     }
   }
   return (
@@ -33,12 +33,12 @@ export function BouncingBall() {
 }
 
 
-export const BouncingBallTwin = () => {
+export const BouncingBallTwin = ({ bounceMultiplier }: {bounceMultiplier: number;}) => {
   const ballRef = useRef<RapierRigidBody>(null);
   const handleJump = () => {
       // Apply an upward impulse on the y-axis
     if (ballRef.current) {
-      ballRef.current.applyImpulse({ x: 0, y: 0.01, z: 0 }, true)
+      ballRef.current.applyImpulse({ x: (1-Math.random()) * 0.0001 * bounceMultiplier, y: 0.02 * bounceMultiplier, z: (1-Math.random()) * 0.0001 * bounceMultiplier }, true)
     }
   }
   const [active, setActive] = useState(false);
@@ -53,7 +53,7 @@ export const BouncingBallTwin = () => {
     <RigidBody
       name="greenball"
       ref={ballRef} colliders="ball"
-      restitution={0.9} // High elasticity makes it bounce
+      restitution={1.9} // High elasticity makes it bounce
       position={[-10, 5, 7]}
     >
       <mesh
@@ -71,12 +71,12 @@ export const BouncingBallTwin = () => {
   );
 };
 
-export function BouncingBallTriplet() {
+export function BouncingBallTriplet({ bounceMultiplier }: {bounceMultiplier: number;}) {
   const ballRef = useRef<RapierRigidBody>(null);
   const handleJump = () => {
       // Apply an upward impulse on the y-axis
     if (ballRef.current) {
-      ballRef.current.applyImpulse({ x: 0, y: 0.01, z: 0 }, true)
+      ballRef.current.applyImpulse({ x: (1-Math.random()) * 0.001 * bounceMultiplier, y: 0.04 * bounceMultiplier, z: (1-Math.random()) * 0.0001 * bounceMultiplier }, true)
     }
   }
   const [ballColor, setColor] = useState("skyblue");
