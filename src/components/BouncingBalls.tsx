@@ -14,6 +14,7 @@ export function BouncingBall() {
   }
   return (
     <RigidBody
+      name="orangeball"
       ref={ballRef}
       colliders="ball"
       restitution={0.8} // High elasticity makes it bounce
@@ -46,12 +47,11 @@ export const BouncingBallTwin = () => {
   useFrame(() => {
     if (active) {
       //  console.log(ballRef.current);
-
     }
   });
-
   return (
     <RigidBody
+      name="greenball"
       ref={ballRef} colliders="ball"
       restitution={0.9} // High elasticity makes it bounce
       position={[-10, 5, 7]}
@@ -82,6 +82,7 @@ export function BouncingBallTriplet() {
   const [ballColor, setColor] = useState("skyblue");
   return (
     <RigidBody
+      name="skyball"
       ref={ballRef}
       colliders="ball"
       restitution={0.8} // High elasticity makes it bounce

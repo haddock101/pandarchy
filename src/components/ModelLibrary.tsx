@@ -1,14 +1,16 @@
 import { useMemo } from "react";
 import { RigidBody } from "@react-three/rapier";
+// import { type Vector3 } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 /*
 export default function ModelLibrary() {
 
 }
 */
+
 /* @ts-expect-error: Unknown */
 function CloneGLTFModel({ url, ...props }) {
-   /* @ts-expect-error: Unknown */
+  /* @ts-expect-error: Unknown */
   const { scene } = useGLTF(url);
 
   // Safely clone the asset mesh so instances don't share the same material/geometry transformations
@@ -17,13 +19,13 @@ function CloneGLTFModel({ url, ...props }) {
   return <primitive object={clone} {...props} />;
 }
 /* @ts-expect-error: Unknown */
-export const Cannonball = ({ position, ...props }) => {
+export const Cannonball = ({ position, name, ...props }) => {
   return (
-    <RigidBody
+    <RigidBody name={name}
       position={position}
       colliders="ball" // Auto-generates a hull collider matching the mesh
-      restitution={1.5} // Determines how bouncy the ball is
-      friction={0.0001} // Slide resistance
+      restitution={1.3} // Determines how bouncy the ball is
+      friction={0.01} // Slide resistance
       {...props}
     >
       <CloneGLTFModel url={'/glb/cannon-ball.glb'} />
@@ -31,7 +33,7 @@ export const Cannonball = ({ position, ...props }) => {
   );
 };
 
- /* @ts-expect-error: Unknown */
+/* @ts-expect-error: Unknown */
 export const Barrel = ({ position, ...props }) => {
   return (
     <RigidBody

@@ -10,7 +10,7 @@ function Plane() {
     }
   };
   return (
-    <RigidBody ref={planeRef} colliders="cuboid" canSleep={true} mass={10000}>
+    <RigidBody name="plane" ref={planeRef} colliders="cuboid" canSleep={true} mass={10000}>
       <mesh
         position={[-0.3, 2, 10]}
         rotation={[0, 0, (Math.PI / 180) * 80]}

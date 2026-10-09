@@ -11,33 +11,34 @@ import {
   Environment,
   OrbitControls,
 } from "@react-three/drei";
-import { Physics, RigidBody } from "@react-three/rapier";
-import Sphere from "./components/Sphere.tsx"
+import { Physics } from "@react-three/rapier";
+import Sphere from "./components/Sphere.tsx";
 
-import CheckeredBox from "./components/CheckeredBox";
 import { Leva, useControls } from "leva";
 import { Barrel, Cannonball } from "./components/ModelLibrary";
-import { BouncingBall, BouncingBallTwin, BouncingBallTriplet } from "./components/BouncingBalls";
+import {
+  BouncingBall,
+  BouncingBallTwin,
+  BouncingBallTriplet,
+} from "./components/BouncingBalls";
 import { Wall, FrontWall, BackWall, SideWall } from "./components/Wall";
 import Box from "./components/Box";
 import SpringBoard from "./components/SpringBoard";
 import Plane from "./components/Plane";
-
-function Floor() {
-  return (
-    <RigidBody type="fixed">
-      <CheckeredBox position={[0, -0.49, 0]} />
-      <mesh position={[0, -1, 0]}>
-        <boxGeometry args={[25, 1, 25]} />
-        <meshStandardMaterial color="chartreuse" />
-      </mesh>
-    </RigidBody>
-  );
-}
+import Floor from "./components/Floor";
+import { InvisibleContainer } from "./components/InvisibleContainer";
 
 export default function App() {
-  const sphereColor = useControls({
-    value: "hotpink",
+  const controls = useControls({
+    debugState: false,
+    sphereColor: "hotpink",
+    containerOpacity: {
+      value: 0,
+      min: 0,
+      max: 1,
+      step: 0.1,
+    },
+    reset: false,
   });
   const cannonballPositions = [
     [1, 15, -4],
@@ -48,43 +49,98 @@ export default function App() {
     [6, 20, -4],
     [7, 21, -4],
     [8, 22, -4],
+    [1, 15, -4],
+    [2, 16, -4],
+    [3, 17, -4],
+    [4, 18, -4],
+    [5, 19, -4],
+    [6, 20, -4],
+    [7, 21, -4],
+    [8, 22, -4],
+    [1, 15, -4],
+    [2, 16, -4],
+    [3, 17, -4],
+    [4, 18, -4],
+    [5, 19, -4],
+    [6, 20, -4],
+    [7, 21, -4],
+    [8, 22, -4],
+    [1, 15, -4],
+    [2, 16, -4],
+    [3, 17, -4],
+    [4, 18, -4],
+    [5, 19, -4],
+    [6, 20, -4],
+    [7, 21, -4],
+    [8, 22, -4],
+    [1, 15, -4],
+    [2, 16, -4],
+    [3, 17, -4],
+    [4, 18, -4],
+    [5, 19, -4],
+    [6, 20, -4],
+    [7, 21, -4],
+    [8, 22, -4],
   ];
   const barrelPositions = [
-    [1,  1.5, -5],
-    [2,  1.6, -5],
-    [3,  1.7, -5],
-    [4,  1.8, -5],
-    [5,  1.9, -5],
-    [6,  2.0, -5],
-    [7,  2.1, -5],
-    [8,  2.2, -5],
+    [1, 1.5, -5],
+    [2, 1.6, -5],
+    [3, 1.7, -5],
+    [4, 1.8, -5],
+    [5, 1.9, -5],
+    [6, 2.0, -5],
+    [7, 2.1, -5],
+    [8, 2.2, -5],
     [10, 2.3, -5],
     [11, 2.4, -5],
     [13, 28, -5],
-    [1,  5, -2],
-    [2,  6, -2],
-    [3,  7, -2],
-    [4,  8, -2],
-    [5,  9, -2],
-    [6,  10, -2],
-    [7,  11, -2],
-    [8,  12, -2],
+    [1, 5, -2],
+    [2, 6, -2],
+    [3, 7, -2],
+    [4, 8, -2],
+    [5, 9, -2],
+    [6, 10, -2],
+    [7, 11, -2],
+    [8, 12, -2],
     [10, 13, -2],
     [11, 14, -2],
     [13, 28, -2],
-    [7.2, 30, 1.5],
-    [1, 45, 7],
-    [-3, 48, 7],
-    [3, 28, 7],
-    [4, 30, 7],
-    [5, 45, 7],
-    [10, 48, 7],
-    [11, 28, 7],
-    [12, 30, 7],
-    [10, 45, 2],
-    [11, 48, -9],
-    [13, 28, -4],
-   /* [7.2, 30, 1.5],
+    [7, 20, -3],
+    [1, 15, 7],
+    [-3, 18, 7],
+    [3, 18, 7],
+    [4, 10, 7],
+    [5, 15, 7],
+    [10, 18, 7],
+    [11, 18, 7],
+    [12, 10, 7],
+    [10, 15, 2],
+    [11, 18, -9],
+    [13, 18, -4],
+    [1, 5, -2],
+    [2, 6, -2],
+    [3, 7, -2],
+    [4, 8, -2],
+    [5, 9, -2],
+    [6, 10, -2],
+    [7, 11, -2],
+    [8, 12, -2],
+    [10, 13, -2],
+    [11, 14, -2],
+    [13, 18, -2],
+    [7, 10, -3],
+    [1, 15, 7],
+    [-3, 18, 7],
+    [3, 18, 7],
+    [4, 10, 7],
+    [5, 15, 7],
+    [10, 18, 7],
+    [11, 18, 7],
+    [12, 10, 7],
+    [10, 15, 2],
+    [11, 18, -9],
+    [13, 18, -4],
+    /* [7.2, 30, 1.5],
     [1, 45, 7],
     [-3, 48, 7],
     [3, 28, 7],
@@ -106,8 +162,8 @@ export default function App() {
     [11, 28, 7],
     [12, 30, 7], */
   ];
+  console.log(barrelPositions.length + cannonballPositions.length);
 
-  // useControls(barrelPositions);
   return (
     <div // fix for rendering bugs on mobile browsers
       style={{
@@ -142,26 +198,37 @@ export default function App() {
       />
 
       <Canvas camera={{ position: [-6.5, 8.5, 6.5], fov: 30 }}>
-        <RandomizedLight castShadow amount={3} frames={100} position={[-14, 45, 5]} />
-        <RandomizedLight castShadow amount={2} frames={100} position={[10, 30, 10]} />
+        <RandomizedLight
+          castShadow
+          amount={3}
+          frames={100}
+          position={[-14, 45, 5]}
+        />
+        <RandomizedLight
+          castShadow
+          amount={2}
+          frames={100}
+          position={[10, 30, 10]}
+        />
         <hemisphereLight intensity={0.5} color="white" groundColor="black" />
         <Environment
           files="/evening_road_01_2k.hdr"
           ground={{ height: 5, radius: 100, scale: 50 }}
         />
         {/* Wrap all interactive 3D physical entities inside the Physics context */}
-        <Physics gravity={[0, -9.81, 0]}>
+        <Physics gravity={[0, -9.81, 0]} debug={controls.debugState}>
+          <InvisibleContainer opacity={controls.containerOpacity} />
           <group position={[0, 0, 0]}>
             <Sphere
-              color={sphereColor.value}
+              color={controls.sphereColor}
               amount={50}
               emissive="green"
               glow="lightgreen"
               size={0.2}
               /* @ts-expect-error: Unknown */
-              position={[-0.95, 0.16, 0.95]}
+              position={[-0.95, 0.17, 0.95]}
             />
-            {   /*
+            {/*
             <group scale={0.5}>
 
 
@@ -184,7 +251,7 @@ export default function App() {
               />
 
             </group>
-             */ }
+             */}
             <group scale={0.1}>
               <BouncingBallTwin />
               <BouncingBall />
@@ -192,6 +259,7 @@ export default function App() {
               {/* Spawn Cloned Physics Barrels */}
               {barrelPositions.map((pos, index) => (
                 <Barrel
+                  name={"barrel" + index}
                   key={"barrel" + index}
                   position={pos}
                   url="/glb/barrel.glb"
@@ -208,10 +276,11 @@ export default function App() {
               {cannonballPositions.map((pos, index) => (
                 <Cannonball
                   key={"cannonball" + index}
+                  name={"cannonball" + index}
                   position={pos}
                 />
               ))}
-              <Cannonball position={[0,20,0]} />
+              <Cannonball name="Cannonball" position={[0, 20, 0]} />
             </group>
           </group>
         </Physics>

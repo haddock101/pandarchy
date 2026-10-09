@@ -9,7 +9,7 @@ function Box() {
     }
   }
   return (
-    <RigidBody ref={ref} colliders="cuboid" >
+    <RigidBody name="pinkbox" ref={ref} colliders="cuboid" >
       <mesh
         position={[8, 5, 8]}
         rotation={[

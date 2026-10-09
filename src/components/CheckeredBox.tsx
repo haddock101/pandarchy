@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { RigidBody } from "@react-three/rapier";
 import * as THREE from 'three';
 // @ts-ignore
 export default function CheckeredBox(props) {
@@ -31,13 +32,15 @@ export default function CheckeredBox(props) {
   }, []);
 
   return (
+    <RigidBody type="fixed" colliders="cuboid" >
     <mesh {...props}>
-      <boxGeometry args={[25, 0.01, 25]} />
+      <boxGeometry args={[25, 1, 25]} />
       <meshStandardMaterial
         map={checkeredTexture}
         roughness={0.5}
         metalness={0.0}
       />
-    </mesh>
+      </mesh>
+    </RigidBody>
   );
 }
