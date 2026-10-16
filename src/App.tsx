@@ -6,10 +6,11 @@ import * as THREE from "three";
 import UtilWrapper from "./components/UtilWrapper.tsx";
 import InvisibleContainer from "./components/InvisibleContainer.tsx";
 import { BouncingBall, ImpulseMarker } from "./components/BouncingBalls.tsx";
-import { Funnel, Halfpipe, Pipe90 } from "./components/PropsNStuff.tsx";
+import { Funnel, Halfpipe, Pipe90, Quarterpipe } from "./components/PropsNStuff.tsx";
 import { Walls } from "./components/Wall.tsx";
 import Floor from "./components/Floor.tsx";
 import { Model } from "./components/ModelLibrary.tsx";
+import { Seesaw } from "./components/Seesaw.tsx";
 
 const deg = THREE.MathUtils.degToRad;
 
@@ -21,7 +22,7 @@ export default function App() {
     bounceMultiplier: { value: 10, min: 0.0001, max: 100, step: 0.0001 },
     debugState: false,
   });
-
+ 
   return (
     <UtilWrapper>
       <Leva
@@ -36,7 +37,6 @@ export default function App() {
           position: { x: 0, y: 0 },
         }}
       />
-
       
       <Canvas
         shadows="percentage"
@@ -50,12 +50,27 @@ export default function App() {
         <hemisphereLight intensity={1} color="white" groundColor="black" />
         <Environment
           files="/hdr/evening_road_01_2k.hdr"
-          ground={{ height: 5, radius: 100, scale: 50 }}
+          ground={{ height: 5, radius: 200, scale: 100 }}
         />
         {/* Wrap all interactive 3D physical entities inside the Physics context */}
-        <Physics gravity={[0, -9.81, 0]} debug={controls.debugState}>
-          <Model name="barrel" position={[0, 5, 0]} />
+        <Physics gravity={[0, -9.81, 0]} debug={controls.debugState}>          
           <group scale={0.5}>
+            <Model type="dynamic" name="dock" position={[-7.5, 0.5, -3.5]} />
+            <Seesaw position={[-7, 0, -7]} />
+            <Quarterpipe position={[7, 5 - 0.15, -7]} radius={5} length={5} rotation={[0, deg(90), deg(-90)]} />
+            <BouncingBall
+              name="pingball"
+              position={[-6, 16.85, -7]}
+              bounceMultiplier={controls.bounceMultiplier}
+              radius={0.5}
+              mass={1000000000}
+              restitution={0.9}
+              friction={0}
+              impulseDivisor={10}
+              initialColor="orange"
+              colors={["orange", "hotpink"]}
+              canSleep={false}
+            />
             <BouncingBall
               name="orangeball"
               position={[-9, 6.93, 9]}

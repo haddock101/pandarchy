@@ -6,7 +6,7 @@ const UtilWrapper = ({ children }: PropsWithChildren) => {
       style={{
         width: "100vw",
         height: "100vh",
-        background: "#111",
+        background: "#111111",
         border: 0,
         position: "fixed",
         transform: "scale(1.005)",

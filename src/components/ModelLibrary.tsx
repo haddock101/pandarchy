@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { RigidBody, type RigidBodyProps } from "@react-three/rapier";
-import { useGLTF } from "@react-three/drei";
+import { useGLTF, Clone } from "@react-three/drei";
 
 // Static scenery by default; entries override what differs.
 const staticBody: RigidBodyProps = {
@@ -54,7 +54,7 @@ export function Model({ name, ...props }: { name: ModelName } & RigidBodyProps) 
 
   return (
     <RigidBody name={name} {...staticBody} {...entry.body} {...props}>
-      <primitive object={clone} />
+      <Clone object={clone} castShadow />
     </RigidBody>
   );
 }

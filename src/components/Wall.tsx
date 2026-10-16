@@ -17,7 +17,7 @@ export function Walls() {
   return (
     <>
       {walls.map(({ name, position, size }) => (
-        <RigidBody key={name} name={name} type="fixed">
+        <RigidBody key={name} name={name} type="fixed" colliders="cuboid" restitution={3} friction={1}>
           <mesh receiveShadow position={position}>
             <boxGeometry args={size} />
             <meshStandardMaterial color="#888888" />
