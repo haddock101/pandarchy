@@ -8,6 +8,7 @@ function Mound({ color }: { color: string; }) {
   const normalMap = useTexture("textures/cb_colorMap.jpg");
   const roughnessMap = useTexture("textures/cb_colorMap.jpg");
 
+
   return (
     <RigidBody type="fixed" colliders="hull" >
       <mesh

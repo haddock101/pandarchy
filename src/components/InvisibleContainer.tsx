@@ -5,19 +5,16 @@ const InvisibleWall1 = ({ visible, opacity }: { visible: boolean; opacity: numbe
     // Creates a fixed, invisible cuboid collider
     <RigidBody
       type="fixed"
-
       position={[3, 2.75, 0]}
-      scale={[0.3, 6, 6]}
+      scale={[1, 6, 6]}
     >
       <CuboidCollider
         args={[0.5, 0.5, 0.5]}
-        sensor={true} // 👈 This makes it a ghost/trigger zone
+        sensor={true}
         onIntersectionEnter={({ other  }) => {
           console.log( other.rigidBodyObject?.name + ' hit InvisibleWall1' );
         }}
-        onIntersectionExit={() => {
-          //   console.log("An object left the ghost zone!")
-        }}
+
       />
       <mesh>
         <boxGeometry args={[1, 1, 1]} />
@@ -34,17 +31,15 @@ const InvisibleWall2 = ({ visible, opacity }: { visible: boolean; opacity: numbe
       type="fixed"
 
       position={[-3, 2.75, 0]}
-      scale={[0.3, 6, 6]}
+      scale={[1, 6, 6]}
     >
       <CuboidCollider
         args={[0.5, 0.5, 0.5]}
-        sensor={true} // 👈 This makes it a ghost/trigger zone
+        sensor={true}
         onIntersectionEnter={({ other }) => {
           console.log( other.rigidBodyObject?.name + ' hit wall2' );
         }}
-        onIntersectionExit={() => {
-          // console.log("An object left the ghost zone!")
-        }}
+
       />
       <mesh>
         <boxGeometry args={[1, 1, 1]} />
@@ -55,22 +50,18 @@ const InvisibleWall2 = ({ visible, opacity }: { visible: boolean; opacity: numbe
 };
 const InvisibleWall3 = ({ visible, opacity }: { visible: boolean; opacity: number; }) => {
   return (
-    // Creates a fixed, invisible cuboid collider
     <RigidBody
       type="fixed"
-
       position={[0, 2.75, 3]}
-      scale={[6, 6, 0.3]}
+      scale={[6, 6, 1]}
     >
       <CuboidCollider
         args={[0.5, 0.5, 0.5]}
-        sensor={true} // 👈 This makes it a ghost/trigger zone
+        sensor={true}
         onIntersectionEnter={({ other }) => {
           console.log( other.rigidBodyObject?.name + ' hit wall3' );
         }}
-        onIntersectionExit={() => {
-          //  console.log("An object left the ghost zone!")
-        }}
+
       />
       <mesh>
         <boxGeometry args={[1, 1, 1]} />
@@ -81,22 +72,18 @@ const InvisibleWall3 = ({ visible, opacity }: { visible: boolean; opacity: numbe
 };
 const InvisibleWall4 = ({ visible, opacity }: { visible: boolean; opacity: number; }) => {
   return (
-    // Creates a fixed, invisible cuboid collider
     <RigidBody
       type="fixed"
-
       position={[0, 2.75, -3]}
-      scale={[6, 6, 0.3]}
+      scale={[6, 6, 1]}
     >
       <CuboidCollider
         args={[0.5, 0.5, 0.5]}
-        sensor={true} // 👈 This makes it a ghost/trigger zone
+        sensor={true}
         onIntersectionEnter={({ other }) => {
           console.log( other.rigidBodyObject?.name + ' hit wall4' );
         }}
-        onIntersectionExit={() => {
-          // console.log("An object left the ghost zone!")
-        }}
+
       />
       <mesh>
         <boxGeometry args={[1, 1, 1]} />
@@ -107,25 +94,19 @@ const InvisibleWall4 = ({ visible, opacity }: { visible: boolean; opacity: numbe
 };
 
 export function InvisibleContainer({ visible, opacity }: { visible: boolean;  opacity: number; }) {
-
   return (
     // Creates a fixed, invisible cuboid collider
     <>
       <RigidBody
         type="fixed"
-        colliders="cuboid"
-        position={[0, -0.25, 0]}
-        scale={[6, 0.3, 6]}
+        position={[0, -0.55, 0]}
+        scale={[6, 1, 6]}
       >
         <CuboidCollider
           args={[0.5, 0.5, 0.5]}
-          sensor={false} // 👈 This makes it a ghost/trigger zone
+          sensor={false}
           onIntersectionEnter={({ other }) => {
             console.log( other.rigidBodyObject?.name + ' hit the ground' );
-            // console.log("An object entered the ghost zone!", other.rigidBodyObject.name)
-          }}
-          onIntersectionExit={() => {
-            // console.log("An object left the ghost zone!")
           }}
         />
         <mesh>

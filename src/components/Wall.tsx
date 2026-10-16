@@ -35,6 +35,17 @@ export function FrontWall() {
   );
 }
 
+export function FrontWallAlt() {
+  return (
+    <RigidBody type="fixed" >
+      <mesh position={[-13, 2, 0]} >
+        <boxGeometry args={[1, 7, 27]} />
+        <meshStandardMaterial color="#888888" />
+      </mesh>
+    </RigidBody>
+  );
+}
+
 export function BackWall() {
   return (
     <RigidBody type="fixed">
