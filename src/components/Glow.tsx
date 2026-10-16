@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { Billboard } from "@react-three/drei";
-// import { EffectComposer, Bloom } from "@react-three/postprocessing"
 import { LayerMaterial, Depth } from "lamina";
 
 function Glow({
@@ -10,9 +9,9 @@ function Glow({
   far = 1.0,
 }: {
   color: string;
-  scale: number;
-  near: number;
-  far: number;
+  scale?: number;
+  near?: number;
+  far?: number;
 }) {
   return (
     <Billboard>

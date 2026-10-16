@@ -1,47 +1,46 @@
-import { useMemo } from "react";
-import { RigidBody } from "@react-three/rapier";
+import { useEffect, useMemo } from "react";
+import type { ThreeElements } from "@react-three/fiber";
 import * as THREE from "three";
-// @ts-ignore
-export default function CheckeredBox(props) {
-  // 1. Generate the checkered texture procedurally inside useMemo
-  const checkeredTexture = useMemo(() => {
-    const size = 256;
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
 
-    const ctx = canvas.getContext("2d");
-    const numSquares = 8; // 8x8 grid
-    const squareSize = size / numSquares;
-
-    for (let i = 0; i < numSquares; i++) {
-      for (let j = 0; j < numSquares; j++) {
-        // @ts-ignore
+function createCheckeredTexture(size = 256, squares = 8) {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    const squareSize = size / squares;
+    for (let i = 0; i < squares; i++) {
+      for (let j = 0; j < squares; j++) {
         ctx.fillStyle = (i + j) % 2 === 0 ? "#ffffff" : "skyblue";
-        // @ts-ignore
         ctx.fillRect(i * squareSize, j * squareSize, squareSize, squareSize);
       }
     }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  // Crisp pixels instead of blurry ones when viewed up close
+  texture.magFilter = THREE.NearestFilter;
+  return texture;
+}
 
-    const texture = new THREE.CanvasTexture(canvas);
-
-    // Optional: Make the pixels crisp instead of blurry when close up
-     texture.magFilter = THREE.NearestFilter;
-    //
-    return texture;
-  }, []);
+/** A box with a checkered top face. Wrap it in a RigidBody to give it physics. */
+export default function CheckeredBox(props: ThreeElements["mesh"]) {
+  const texture = useMemo(() => createCheckeredTexture(), []);
+  useEffect(() => () => texture.dispose(), [texture]);
 
   return (
-    <RigidBody type="fixed" colliders="cuboid">
-      <mesh receiveShadow {...props}>
-        <boxGeometry args={[25, 1, 25]} />
-        <meshBasicMaterial attach="material-0"  color="0xffffff" />
-        <meshBasicMaterial attach="material-1" color="0xffffff" />
-        <meshStandardMaterial attach="material-2" bumpMap={checkeredTexture} map={checkeredTexture} transparent />
-        <meshBasicMaterial attach="material-3" color="0xffffff" />
-        <meshBasicMaterial attach="material-4" color="0xffffff" />
-        <meshBasicMaterial attach="material-5" color="0xffffff" />
-      </mesh>
-    </RigidBody>
+    <mesh receiveShadow {...props}>
+      <boxGeometry args={[25, 1, 25]} />
+      <meshBasicMaterial attach="material-0" color="#ffffff" />
+      <meshBasicMaterial attach="material-1" color="#ffffff" />
+      <meshStandardMaterial
+        attach="material-2"
+        bumpMap={texture}
+        map={texture}
+        transparent
+      />
+      <meshBasicMaterial attach="material-3" color="#ffffff" />
+      <meshBasicMaterial attach="material-4" color="#ffffff" />
+      <meshBasicMaterial attach="material-5" color="#ffffff" />
+    </mesh>
   );
 }

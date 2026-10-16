@@ -1,58 +1,29 @@
 import { RigidBody } from "@react-three/rapier";
+import type { Vector3 } from "@react-three/fiber";
 
+const walls: {
+  name: string;
+  position: Vector3;
+  size: [number, number, number];
+}[] = [
+  { name: "wall", position: [13, 2, 0], size: [1, 7, 27] },
+  { name: "sideWall", position: [0, 2, -13], size: [27, 7, 1] },
+  { name: "frontWall", position: [-13, 2, 0], size: [1, 7, 27] },
+  { name: "backWall", position: [0, 2, 13], size: [27, 7, 1] },
+];
 
-export function Wall() {
+/** The four grey walls around the floor. */
+export function Walls() {
   return (
-    <RigidBody type="fixed">
-      <mesh receiveShadow position={[13, 2, 0]}>
-        <boxGeometry args={[1, 7, 27]} />
-        <meshStandardMaterial color="#888888" />
-      </mesh>
-    </RigidBody>
-  );
-}
-
-
-export function SideWall() {
-  return (
-    <RigidBody type="fixed">
-      <mesh receiveShadow position={[0, 2, -13]}>
-        <boxGeometry args={[27, 7, 1]} />
-        <meshStandardMaterial color="#888888" />
-      </mesh>
-    </RigidBody>
-  );
-}
-
-export function FrontWall() {
-  return (
-    <RigidBody type="fixed" >
-      <mesh position={[-13, -0.925, 0]} >
-        <boxGeometry args={[1, 1.125, 27]} />
-        <meshStandardMaterial color="#888888" />
-      </mesh>
-    </RigidBody>
-  );
-}
-
-export function FrontWallAlt() {
-  return (
-    <RigidBody type="fixed" >
-      <mesh position={[-13, 2, 0]} >
-        <boxGeometry args={[1, 7, 27]} />
-        <meshStandardMaterial color="#888888" />
-      </mesh>
-    </RigidBody>
-  );
-}
-
-export function BackWall() {
-  return (
-    <RigidBody type="fixed">
-      <mesh position={[0, 2, 13]}>
-        <boxGeometry args={[27, 7, 1]} />
-        <meshStandardMaterial color="#888888" />
-      </mesh>
-    </RigidBody>
+    <>
+      {walls.map(({ name, position, size }) => (
+        <RigidBody key={name} name={name} type="fixed">
+          <mesh receiveShadow position={position}>
+            <boxGeometry args={size} />
+            <meshStandardMaterial color="#888888" />
+          </mesh>
+        </RigidBody>
+      ))}
+    </>
   );
 }

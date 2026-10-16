@@ -1,284 +1,60 @@
 import { useMemo } from "react";
-import { RigidBody } from "@react-three/rapier";
-// import { type Vector3 } from "@react-three/fiber";
+import { RigidBody, type RigidBodyProps } from "@react-three/rapier";
 import { useGLTF } from "@react-three/drei";
-/*
-export default function ModelLibrary() {
 
-}
-*/
+// Static scenery by default; entries override what differs.
+const staticBody: RigidBodyProps = {
+  type: "fixed",
+  colliders: "hull",
+  restitution: 0,
+  friction: 1,
+};
 
-/* @ts-expect-error: Unknown */
-function CloneGLTFModel({ url, ...props }) {
-  /* @ts-expect-error: Unknown */
-  const { scene } = useGLTF(url);
+const models = {
+  cannonball: {
+    url: "/glb/cannon-ball.glb",
+    body: { type: "dynamic", colliders: "ball", restitution: 1, friction: 0.5 },
+  },
+  barrel: {
+    url: "/glb/barrel.glb",
+    body: { type: "dynamic", colliders: "hull", restitution: 0.2, friction: 0.1 },
+  },
+  pirateFlag: { url: "/glb/flag-pirate-high-pennant.glb" },
+  pirateShip: { url: "/glb/ship-pirate-medium.glb" },
+  dock: { url: "/glb/structure-platform-dock.glb" },
+  tower: { url: "/glb/tower-complete-large.glb" },
+  watchTower: { url: "/glb/tower-watch.glb" },
+  castleDoor: { url: "/glb/castle-door.glb" },
+  castleWindow: { url: "/glb/castle-window.glb" },
+  castleWall: { url: "/glb/castle-wall.glb" },
+  castleGate: { url: "/glb/castle-gate.glb" },
+  palmBent: { url: "/glb/palm-detailed-bend.glb" },
+  palmBentSimple: { url: "/glb/palm-bend.glb" },
+  palmStraight: { url: "/glb/palm-detailed-straight.glb" },
+  palmStraightSimple: { url: "/glb/palm-straight.glb" },
+  patchSand: { url: "/glb/patch-sand.glb" },
+  patchSandFoliage: { url: "/glb/patch-sand-foliage.glb" },
+  patchGrass: { url: "/glb/patch-grass.glb" },
+  patchGrassFoliage: { url: "/glb/patch-grass-foliage.glb" },
+} satisfies Record<string, { url: string; body?: RigidBodyProps }>;
 
-  // Safely clone the asset mesh so instances don't share the same material/geometry transformations
+export type ModelName = keyof typeof models;
+
+/**
+ * A GLB model from public/glb wrapped in a RigidBody.
+ * Any RigidBody prop (position, type, colliders, mass…) overrides the model's defaults.
+ *
+ * @example <Model name="barrel" position={[0, 5, 0]} />
+ */
+export function Model({ name, ...props }: { name: ModelName } & RigidBodyProps) {
+  const entry: { url: string; body?: RigidBodyProps } = models[name];
+  const { scene } = useGLTF(entry.url);
+  // Clone so several instances of one model don't share a scene graph
   const clone = useMemo(() => scene.clone(), [scene]);
 
-  return <primitive object={clone} {...props} />;
+  return (
+    <RigidBody name={name} {...staticBody} {...entry.body} {...props}>
+      <primitive object={clone} />
+    </RigidBody>
+  );
 }
-/* @ts-expect-error: Unknown */
-export const Cannonball = ({ position, name, ...props }) => {
-  return (
-    <RigidBody name={name}
-      position={position}
-      colliders="ball" // Auto-generates a hull collider matching the mesh
-      restitution={1} // Determines how bouncy the ball is
-      friction={0.5} // Slide resistance
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/cannon-ball.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const Barrel = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0.2} // Determines how bouncy the ball is
-      friction={0.1} // Slide resistance
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/barrel.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const PirateFlag = ({ position, ...props }) => {
-  return (
-    <RigidBody type="fixed"
-      position={position}
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0}
-      friction={1}
-      // mass={5000}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/flag-pirate-high-pennant.glb'} />
-    </RigidBody>
-  );
-};
-/* @ts-expect-error: Unknown */
-export const Dock = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      type="fixed"
-      restitution={0}
-      friction={1}
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/structure-platform-dock.glb'} />
-    </RigidBody>
-  );
-};
-/* @ts-expect-error: Unknown */
-export const Tower = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/tower-complete-large.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const CastleDoor = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/castle-door.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const CastleWindow = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/castle-window.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const CastleWall = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/castle-wall.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const CastleGate = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/castle-gate.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const PalmBent = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/palm-detailed-bend.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const PalmStraightAlt = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/palm-straight.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const PalmStraight = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/palm-detailed-straight.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const PatchSand = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/patch-sand.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const PatchGrass = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/patch-grass.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const PatchGrassFoliage = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/patch-grass-foliage.glb'} />
-    </RigidBody>
-  );
-};
-
-/* @ts-expect-error: Unknown */
-export const PatchSandFoliage = ({ position, ...props }) => {
-  return (
-    <RigidBody
-      position={position}
-      type="fixed"
-      colliders="hull" // Auto-generates a hull collider matching the mesh
-      restitution={0} // Determines how bouncy the ball is
-      friction={1} // Slide resistance
-      // mass={500}
-      {...props}
-    >
-      <CloneGLTFModel url={'/glb/patch-sand-foliage.glb'} />
-    </RigidBody>
-  );
-};

@@ -1,5 +1,6 @@
-/* @ts-expect-error: Unknown */
-const UtilWrapper = (props) => {
+import type { PropsWithChildren } from "react";
+
+const UtilWrapper = ({ children }: PropsWithChildren) => {
   return (
     <div // fix for rendering bugs on mobile browsers
       style={{
@@ -13,7 +14,7 @@ const UtilWrapper = (props) => {
         overflow: "hidden",
       }}
     >
-      {props.children}
+      {children}
     </div>
   );
 };
