@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import {
   useFrame,
   useThree,
@@ -11,6 +11,17 @@ import * as THREE from "three";
 
 // Scratch vector shared by all handlers, so clicks and frames don't allocate.
 const forward = new THREE.Vector3();
+
+// Ball meshes are also on this layer so the marker can raycast only against them.
+const BALL_LAYER = 1;
+// Gap between the marker's tip and the hovered surface.
+const MARKER_GAP = 0.000005;
+const MARKER_SIZE = 0.5;
+
+// The marker's own raycaster; R3F's shared one drives pointer events and must stay on all layers.
+const ballRaycaster = new THREE.Raycaster();
+ballRaycaster.layers.set(BALL_LAYER);
+const hitNormal = new THREE.Vector3();
 
 type BouncingBallProps = {
   name: string;
@@ -76,6 +87,7 @@ export function BouncingBall({
     >
       <mesh
         castShadow
+        onUpdate={(mesh) => mesh.layers.enable(BALL_LAYER)}
         onClick={handleClick}
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
@@ -87,20 +99,108 @@ export function BouncingBall({
   );
 }
 
+
 export function ImpulseMarker() {
   const meshRef = useRef<THREE.Mesh>(null);
-  const { camera } = useThree();
 
-  useFrame(() => {
-    if (!meshRef.current) return;
-    camera.getWorldDirection(forward);
-    meshRef.current.lookAt(forward);
+  useFrame(({ pointer, camera, scene }) => {
+    const marker = meshRef.current;
+    if (!marker) return;
+
+    ballRaycaster.setFromCamera(pointer, camera);
+    const [hit] = ballRaycaster.intersectObjects(scene.children, true);
+    marker.visible = !!hit?.face;
+    if (!hit?.face) return;
+
+    // Stand the marker off the surface along the world-space normal, tip towards the hit. 
+    hitNormal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
+    marker.position
+      .copy(hit.point)
+      .addScaledVector(hitNormal, MARKER_GAP);
+      // marker.rotateY(Math.PI/4); // Flip the arrow to point towards the hit
+    marker.lookAt(hit.point);
   });
 
+  const halo = new THREE.SphereGeometry(MARKER_SIZE, 32, 32, 0, (Math.PI * 2), Math.PI/8, Math.PI / 16);
+  halo.translate(0, -MARKER_SIZE/1.1, 0) // Move the halo so that it aligns with the center of the sphere
+  halo.rotateX(-Math.PI/2)
+
   return (
-    <mesh name="marker" ref={meshRef} position={[4.3, 0.4, 0.5]}>
-      <boxGeometry args={[1, 0.1, 4]} />
-      <meshStandardMaterial color="green" />
+    
+    <mesh geometry={halo} name="marker" castShadow ref={meshRef} visible={false}>      
+      <meshStandardMaterial 
+        color="white"
+        emissive="white" emissiveIntensity={2}
+      />
     </mesh>
+    
   );
+}
+
+export function Halo() {
+  const halo = new THREE.SphereGeometry(MARKER_SIZE, 32, 32, 0, (Math.PI * 2), Math.PI/8, Math.PI / 16);
+  halo.translate(0, -MARKER_SIZE/1.1, 0) // Move the halo so that the tip of the arrow is at the center of the sphere
+  halo.rotateX(-Math.PI/2)
+  return (
+    <mesh castShadow geometry={halo} />
+  )
+}
+
+export function ParametricArrow({ 
+  stemWidth = 0.4, 
+  stemLength = 1.5, 
+  headWidth = 1.2, 
+  headLength = 0.8, 
+  length = 2,
+  depth = 0.2
+}) {
+  
+  // Calculate and memorize the arrow shape whenever dimensions change
+  const arrowShape = useMemo(() => {
+    const shape = new THREE.Shape()
+
+    stemLength = length * (stemLength/(stemLength+headLength)); // Scale stemLength to fit within the total length of the arrow
+    headLength = length * (headLength/(stemLength+headLength));
+
+    // Start at tip of the arrow head
+    shape.moveTo(0, 0)
+
+    // Flare out to the left edge of the arrow head
+    shape.lineTo(headWidth, stemLength)
+
+    // Pull back into the right side of the stem
+    shape.lineTo(stemWidth / 2, stemLength)
+
+    // Line down to the bottom right of the stem
+    shape.lineTo(stemWidth / 2, headLength + stemLength)
+
+    // Line up to the other side of the stem
+    shape.lineTo( -stemWidth / 2, headLength + stemLength)
+
+    // Up to the left edge of the arrow head
+    shape.lineTo( -stemWidth / 2, stemLength )
+    
+    // Out to the left edge of the arrow head
+    shape.lineTo(-headWidth, stemLength )    
+    
+    // Close the path automatically back to the start
+    return shape;
+
+    
+  }, [stemWidth, stemLength, headWidth, headLength])
+
+  // Extrusion settings (depth, bevels, etc.)
+  const extrudeSettings = useMemo(() => ({
+    depth: depth,
+    bevelEnabled: true,
+    bevelThickness: 0.02,
+    bevelSize: 0.02,
+    bevelSegments: 3
+  }), [depth])
+
+  return (
+    <>
+      <extrudeGeometry args={[arrowShape, extrudeSettings]} />
+    </>
+  )
 }

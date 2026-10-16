@@ -9,6 +9,7 @@ import { BouncingBall, ImpulseMarker } from "./components/BouncingBalls.tsx";
 import { Funnel, Halfpipe, Pipe90 } from "./components/PropsNStuff.tsx";
 import { Walls } from "./components/Wall.tsx";
 import Floor from "./components/Floor.tsx";
+import { Model } from "./components/ModelLibrary.tsx";
 
 const deg = THREE.MathUtils.degToRad;
 
@@ -35,9 +36,14 @@ export default function App() {
           position: { x: 0, y: 0 },
         }}
       />
+
+      
       <Canvas
         shadows="percentage"
         camera={{ position: [14.5, 13.5, -14.5], fov: 30 }}
+        onCreated={(state) => {
+          state.setEvents({ filter: (intersections) => intersections.filter(i => i.object.visible) })
+        }}
       >
         <directionalLight castShadow position={[-14, 45, 5]} />
         <directionalLight castShadow position={[10, 30, 10]} />
@@ -48,6 +54,7 @@ export default function App() {
         />
         {/* Wrap all interactive 3D physical entities inside the Physics context */}
         <Physics gravity={[0, -9.81, 0]} debug={controls.debugState}>
+          <Model name="barrel" position={[0, 5, 0]} />
           <group scale={0.5}>
             <BouncingBall
               name="orangeball"
