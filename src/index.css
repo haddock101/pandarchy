@@ -22,3 +22,27 @@ body {
   top: unset !important;
   left: unset !important;
 }
+
+.canvas-container {
+  pointer-events: none;
+  /* Disables all mouse/touch interactions */
+  user-select: none;
+}
+.buttonContainer {
+  position: absolute;
+  z-index: 10;
+  top: 8px;
+  right: 40px;
+}
+.buttonContainer button {
+  position: relative;
+  border: none;
+  width: 90px;
+  border-radius: 10px;
+  padding: 4px 12px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}

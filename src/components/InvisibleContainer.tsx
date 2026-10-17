@@ -8,11 +8,13 @@ type ContainerProps = {
   debug?: boolean;
 };
 
+const wallHeight = 16;
 const walls: { name: string; position: Vector3; scale: Vector3 }[] = [
-  { name: "wall1", position: [3, 2.75, 0], scale: [1, 6, 6] },
-  { name: "wall2", position: [-3, 2.75, 0], scale: [1, 6, 6] },
-  { name: "wall3", position: [0, 2.75, 3], scale: [6, 6, 1] },
-  { name: "wall4", position: [0, 2.75, -3], scale: [6, 6, 1] },
+  
+  { name: "wall1", position: [3, wallHeight / 2, 0], scale: [1, wallHeight, 6] },
+  { name: "wall2", position: [-3, wallHeight / 2, 0], scale: [1, wallHeight, 6] },
+  { name: "wall3", position: [0, wallHeight / 2, 3], scale: [6, wallHeight, 1] },
+  { name: "wall4", position: [0, wallHeight / 2, -3], scale: [6, wallHeight , 1] },
 ];
 
 function ContainerBox({ visible, opacity }: ContainerProps) {
@@ -39,6 +41,15 @@ export function InvisibleContainer({ visible, opacity, debug }: ContainerProps) 
             if (debug) console.log(`${other.rigidBodyObject?.name} hit the ground`);
           }}
         />
+        <ContainerBox visible={visible} opacity={opacity} />
+      </RigidBody>
+      <RigidBody type="fixed" position={[0, wallHeight - 0.55, 0]} scale={[6, 1, 6]}>
+        <CuboidCollider
+          args={[0.5, 0.5, 0.5]}
+          onCollisionEnter={({ other }) => {
+            if (debug) console.log(`${other.rigidBodyObject?.name} hit the ceiling`);
+          }}
+        /> 
         <ContainerBox visible={visible} opacity={opacity} />
       </RigidBody>
       {walls.map(({ name, position, scale }) => (

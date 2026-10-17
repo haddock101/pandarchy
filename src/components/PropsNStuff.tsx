@@ -9,6 +9,34 @@ function PinkMaterial() {
   return <meshStandardMaterial color="hotpink" side={THREE.DoubleSide} />;
 }
 
+export function Corner({
+  radius,
+  rotation,
+  position,
+}: {
+  radius: number;
+  rotation?: Euler;
+  position?: Vector3;
+}) {
+  if (position === undefined) {
+    position = [0, radius - 0.078, 0];
+  }
+  return (
+    <RigidBody friction={0} type="fixed" colliders="trimesh">
+      <mesh
+        castShadow
+        receiveShadow
+        rotation={rotation}
+        position={position}
+      >
+        <sphereGeometry
+          args={[radius, 32, 32, 0, Math.PI / 2, 0, Math.PI / 2]}
+        />
+        <PinkMaterial />
+      </mesh>
+    </RigidBody>
+  );
+}
 
 export function Quarterpipe({
   radius,
@@ -22,10 +50,10 @@ export function Quarterpipe({
   position?: Vector3;
 }) {
   if (position === undefined) {
-    position = [0, radius - 0.07, 0];
+    position = [0, radius - 0.078, 0];
   }
   return (
-    <RigidBody type="fixed" colliders="trimesh">
+    <RigidBody friction={0} type="fixed" colliders="trimesh">
       <mesh
         castShadow
         receiveShadow
@@ -40,7 +68,6 @@ export function Quarterpipe({
     </RigidBody>
   );
 }
- 
 
 export function Halfpipe({
   radius,
@@ -52,12 +79,12 @@ export function Halfpipe({
   rotation?: Euler;
 }) {
   return (
-    <RigidBody type="fixed" colliders="trimesh">
+    <RigidBody friction={0} type="fixed" colliders="trimesh">
       <mesh
         castShadow
         receiveShadow
         rotation={rotation}
-        position={[0, radius - 0.07, 0]}
+        position={[0, radius - 0.078, 0]}
       >
         <cylinderGeometry
           args={[radius, radius, length, 32, 1, true, 0, Math.PI]}
@@ -85,7 +112,7 @@ export function Pipe90({
   thetaLength?: number;
 }) {
   return (
-    <RigidBody type="fixed" colliders="trimesh">
+    <RigidBody friction={0} type="fixed" colliders="trimesh">
       <mesh castShadow receiveShadow rotation={rotation} position={position}>
         {/* radius, tube, radialSegments, tubularSegments, arc, thetaStart, thetaLength */}
         <torusGeometry
@@ -105,7 +132,7 @@ export function Funnel({
   position?: Vector3;
 }) {
   return (
-    <RigidBody type="fixed" colliders="trimesh" position={position}>
+    <RigidBody friction={0} type="fixed" colliders="trimesh" position={position}>
       <mesh castShadow receiveShadow rotation={[Math.PI / 2, deg(90), deg(90)]}>
         <cylinderGeometry args={[radius, 2, 1, 32, 1, true, 0]} />
         <PinkMaterial />
@@ -114,48 +141,49 @@ export function Funnel({
   );
 }
 
-export function ParametricArrow({ 
-  stemWidth = 0.4, 
-  stemLength = 1.5, 
-  headWidth = 1.2, 
-  headLength = 0.8, 
+export function ParametricArrow({
+  stemWidth = 0.4,
+  stemLength = 1.5,
+  headWidth = 1.2,
+  headLength = 0.8,
   length = 2,
   depth = 0.2
 }) {
-  
+
   // Calculate and memorize the arrow shape whenever dimensions change
   const arrowShape = useMemo(() => {
     const shape = new THREE.Shape()
 
-    stemLength = length * (stemLength/(stemLength+headLength)); // Scale stemLength to fit within the total length of the arrow
-    headLength = length * (headLength/(stemLength+headLength));
+    // Scale stem and head proportionally so together they fit the total length of the arrow
+    const scale = length / (stemLength + headLength);
+    const stem = stemLength * scale;
+    const head = headLength * scale;
 
     // Start at tip of the arrow head
     shape.moveTo(0, 0)
 
     // Flare out to the left edge of the arrow head
-    shape.lineTo(headWidth, stemLength)
+    shape.lineTo(headWidth, stem)
 
     // Pull back into the right side of the stem
-    shape.lineTo(stemWidth / 2, stemLength)
+    shape.lineTo(stemWidth / 2, stem)
 
     // Line down to the bottom right of the stem
-    shape.lineTo(stemWidth / 2, headLength + stemLength)
+    shape.lineTo(stemWidth / 2, head + stem)
 
     // Line up to the other side of the stem
-    shape.lineTo( -stemWidth / 2, headLength + stemLength)
+    shape.lineTo(-stemWidth / 2, head + stem)
 
     // Up to the left edge of the arrow head
-    shape.lineTo( -stemWidth / 2, stemLength )
-    
+    shape.lineTo(-stemWidth / 2, stem)
+
     // Out to the left edge of the arrow head
-    shape.lineTo(-headWidth, stemLength )    
-    
+    shape.lineTo(-headWidth, stem)
+
     // Close the path automatically back to the start
     return shape;
 
-    
-  }, [stemWidth, stemLength, headWidth, headLength])
+  }, [stemWidth, stemLength, headWidth, headLength, length])
 
   // Extrusion settings (depth, bevels, etc.)
   const extrudeSettings = useMemo(() => ({
@@ -166,9 +194,6 @@ export function ParametricArrow({
     bevelSegments: 3
   }), [depth])
 
-  return (
-    
-      <extrudeGeometry args={[arrowShape, extrudeSettings]} />
-    
-  )
+  return <extrudeGeometry args={[arrowShape, extrudeSettings]} />
+
 }

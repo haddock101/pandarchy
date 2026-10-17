@@ -10,11 +10,11 @@
     "lint": "eslint .",
     "typecheck": "tsc -b",
     "preview": "vite preview",
-    "push": "rsync -avz --delete dist/ shse.se@ssh.simply.com:/var/www/shse.se/pandarchy/"
+    "push": "rsync -avz --delete --exclude-from='.rsync-exclude' dist/ shse.se@ssh.simply.com:/var/www/shse.se/pandarchy/"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
-    "@react-three/fiber": "^9.8.1",
+    "@react-three/fiber": "^10.0.0-canary.fd3335d",
     "@react-three/rapier": "^2.2.0",
     "lamina": "^1.2.2",
     "leva": "^0.10.1",

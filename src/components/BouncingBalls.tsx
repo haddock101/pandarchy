@@ -1,77 +1,74 @@
 import { useRef, useState, useMemo } from "react";
-import {
-  useFrame,
-  type ThreeEvent,
-  type Vector3,
-} from "@react-three/fiber";
+import { useFrame, type Vector3 } from "@react-three/fiber";
 import { RapierRigidBody, RigidBody } from "@react-three/rapier";
 import { useCursor, useTexture } from "@react-three/drei";
 import * as THREE from "three";
+import {
+  IMPULSE_LAYER,
+  aim,
+  impulseDirection,
+  startCharge,
+  updateCharge,
+  releaseCharge,
+  cancelCharge,
+} from "./impulse.ts";
 
+const SPHERE_SEGMENTS = 64; // Number of segments for the sphere geometry
 
-// Scratch vector shared by all handlers, so clicks and frames don't allocate.
-const forward = new THREE.Vector3();
-const impulseDirection = new THREE.Vector3(0, 1, 0); // Upwards impulse direction
-
-
-// Ball meshes are also on this layer so the marker can raycast only against them.
-const BALL_LAYER = 1;
 // Gap between the marker's tip and the hovered surface.
-const MARKER_GAP = 0.000005;
-const MARKER_SIZE = 0.5;
+const MARKER_GAP = 0.005;
+const MARKER_SIZE = 0.25;
+// How far the marker is pulled back from the surface at full charge.
+const MAX_PULL = 1.5;
+const MARKER_COLOR_EMPTY = new THREE.Color("white");
+const MARKER_COLOR_FULL = new THREE.Color("red");
 
 // The marker's own raycaster; R3F's shared one drives pointer events and must stay on all layers.
-const ballRaycaster = new THREE.Raycaster();
-ballRaycaster.layers.set(BALL_LAYER);
+const markerRaycaster = new THREE.Raycaster();
+markerRaycaster.layers.set(IMPULSE_LAYER);
 const hitNormal = new THREE.Vector3();
 
 type BouncingBallProps = {
   name: string;
   position: Vector3;
-  bounceMultiplier: number;
+  impulseMultiplier: number;
+  impulseDivisor: number; 
   radius: number;
-  mass: number;
   restitution: number;
   friction: number;
-  /** Click impulse is bounceMultiplier / impulseDivisor. */
-  impulseDivisor: number;
-  /** Clicking toggles between these two colors. */
+  density: number;
   colors: [string, string];
-  /** Color before the first click; defaults to colors[0]. */
   initialColor?: string;
   canSleep?: boolean;
+  togglePhysics: (value?: boolean) => void;
+  toggleControls: (value?: boolean) => void;
 };
 
 export function BouncingBall({
   name,
   position,
-  bounceMultiplier,
+  impulseMultiplier,
   radius,
-  mass,
+  density,
+  impulseDivisor,
   restitution,
   friction,
-  impulseDivisor,
   colors: [colorA, colorB],
   initialColor = colorA,
   canSleep = true,
+  togglePhysics,
+  toggleControls,
 }: BouncingBallProps) {
-  const ballRef = useRef<RapierRigidBody>(null);
+  const ballRef = useRef<RapierRigidBody>(null!);
   const [hovered, setHovered] = useState(false);
-  const [color, setColor] = useState(initialColor);
   useCursor(hovered);
+  const [color, setColor] = useState(initialColor);
 
   const textures = useTexture({
     bumpMap: "/textures/sphereMap.jpg",
     roughnessMap: "/textures/sphereMap.jpg",
     aoMap: "/textures/stripe.jpg",
   });
-
-  const handleClick = (e: ThreeEvent<MouseEvent>) => {
-    setColor((c) => (c === colorA ? colorB : colorA));
-    if (!ballRef.current) return;
-    // camera.getWorldDirection(forward).multiplyScalar(bounceMultiplier / impulseDivisor);
-    ballRef.current.applyImpulseAtPoint(impulseDirection.negate().multiplyScalar(bounceMultiplier / impulseDivisor), e.point, true);
-  };
 
   return (
     <RigidBody
@@ -80,109 +77,117 @@ export function BouncingBall({
       colliders="ball"
       restitution={restitution}
       friction={friction}
-      mass={mass}
+      density={density} 
       position={position}
       canSleep={canSleep}
     >
       <mesh
         castShadow
-        onUpdate={(mesh) => mesh.layers.enable(BALL_LAYER)}
-        onClick={handleClick}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
+        onUpdate={(mesh) => mesh.layers.enable(IMPULSE_LAYER)}
+        // onClick={handleClick}
+        onPointerDown={(e) => {
+          // togglePhysics(false)
+          toggleControls(false)
+          startCharge(e)
+        }}
+        onPointerMove={updateCharge}
+        onPointerUp={() => {
+          // Unpause so the ball flies off right away instead of waiting for the pointer to leave it
+          togglePhysics(false)
+          toggleControls(true)
+          if (releaseCharge(ballRef.current, impulseMultiplier / impulseDivisor)) {
+            setColor((c) => (c === colorA ? colorB : colorA))
+          }
+        }}
+        onPointerCancel={() => {
+          cancelCharge()
+          toggleControls(true)
+        }}
+        onPointerOver={() => {
+          setHovered(true)
+          togglePhysics(true)
+          toggleControls(true)
+        }}
+        onPointerOut={() => {
+          setHovered(false)
+          togglePhysics(false)
+          // toggleControls(false)
+        }}
       >
-        <sphereGeometry args={[radius, 32, 32]} />
+        <sphereGeometry args={[radius, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} />
         <meshStandardMaterial color={color} {...textures} />
       </mesh>
     </RigidBody>
   );
 }
 
-
 export function ImpulseMarker() {
-  const meshRef = useRef<THREE.Mesh>(null);
-  console.log(forward, impulseDirection);
+  const markerRef = useRef<THREE.Group>(null);
+  const haloRef = useRef<THREE.Mesh>(null);
+  const stemRef = useRef<THREE.Mesh>(null);
+  const materialRef = useRef<THREE.MeshStandardMaterial>(null);
+
   useFrame(({ pointer, camera, scene }) => {
-    const marker = meshRef.current;
-    if (!marker) return;
+    const marker = markerRef.current;
+    const halo = haloRef.current;
+    const stem = stemRef.current;
+    const material = materialRef.current;
+    if (!marker || !halo || !stem || !material) return;
 
-    ballRaycaster.setFromCamera(pointer, camera);
-    const [hit] = ballRaycaster.intersectObjects(scene.children, true);
-    marker.visible = !!hit?.face;
-    if (!hit?.face) return;
+    let point: THREE.Vector3;
+    if (aim.active) {
+      // Aim is locked while charging; the drag only changes the strength.
+      point = aim.point;
+      hitNormal.copy(aim.normal);
+    } else {
+      markerRaycaster.setFromCamera(pointer, camera);
+      const [hit] = markerRaycaster.intersectObjects(scene.children, true);
+      marker.visible = !!hit?.face;
+      if (!hit?.face) return;
+      point = hit.point;
+      hitNormal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
+      impulseDirection.copy(hitNormal).normalize();
+    }
+    marker.visible = true;
 
-    // Stand the marker off the surface along the world-space normal, tip towards the hit. 
-    hitNormal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
-    marker.position
-      .copy(hit.point)
-      .addScaledVector(hitNormal, MARKER_GAP);
-      // marker.rotateY(Math.PI/4); // Flip the arrow to point towards the hit
-    marker.lookAt(hit.point);
-    impulseDirection.copy(hitNormal).normalize();
+    // Pull the marker back from the surface like a slingshot: the further, the stronger.
+    const charge = aim.active ? aim.charge : 0;
+    const pull = MARKER_GAP + charge * MAX_PULL;
+    marker.position.copy(point).addScaledVector(hitNormal, pull);
+    marker.lookAt(point);
+
+    halo.scale.setScalar(1 + charge);
+    // The stem spans from the halo to the surface, so its length shows the strength too.
+    stem.visible = charge > 0;
+    stem.scale.set(1, pull, 1);
+    stem.position.z = pull / 2;
+
+    material.color.lerpColors(MARKER_COLOR_EMPTY, MARKER_COLOR_FULL, charge);
+    material.emissive.copy(material.color);
   });
 
-   const halo = new THREE.SphereGeometry(MARKER_SIZE, 32, 32, 0, (Math.PI * 2), Math.PI/8, Math.PI / 16);
-   halo.translate(0, -MARKER_SIZE/1.1, 0) // Move the halo so that it aligns with the center of the sphere
-   halo.rotateX(-Math.PI/2)
-  
-  
+  const halo = useMemo(() => {
+    const geometry = new THREE.SphereGeometry(MARKER_SIZE, 32, 32, 0, (Math.PI * 2), Math.PI / 8, Math.PI / 16);
+    geometry.translate(0, -MARKER_SIZE / 1.1, 0) // Move the halo so that it aligns with the center of the sphere
+    geometry.rotateX(-Math.PI / 2)
+    return geometry;
+  }, []);
+
   // const halo = new THREE.ExtrudeGeometry([{arrowShape, extrudeSettings}]);
   return (
-    <group>
-    <mesh geometry={halo} name="marker" castShadow ref={meshRef} visible={false}>      
-      <meshStandardMaterial 
-        color="white"
-        emissive="white" emissiveIntensity={2}
-      />
-    </mesh>
+    <group ref={markerRef} name="marker" visible={false}>
+      <mesh geometry={halo} castShadow ref={haloRef}>
+        <meshStandardMaterial
+          ref={materialRef}
+          color="white"
+          emissive="white" emissiveIntensity={2}
+        />
+      </mesh>
+      {/* Unit-height cylinder lying along +Z (towards the surface); scaled to the pull distance each frame */}
+      <mesh ref={stemRef} rotation-x={Math.PI / 2} visible={false}>
+        <cylinderGeometry args={[0.015, 0.015, 1, 8]} />
+        <meshStandardMaterial color="white" emissive="white" emissiveIntensity={1} />
+      </mesh>
     </group>
   );
-}
-
-export function Halo() {
-  const halo = new THREE.SphereGeometry(MARKER_SIZE, 32, 32, 0, (Math.PI * 2), Math.PI/8, Math.PI / 16);
-  halo.translate(0, -MARKER_SIZE/1.1, 0) // Move the halo so that the tip of the arrow is at the center of the sphere
-  halo.rotateX(-Math.PI/2)
-  return (
-    <mesh castShadow geometry={halo} />
-  )
-}
-
-export function parametricArrow({ 
-  stemWidth = 0.2, 
-  stemLength = 0.5, 
-  headWidth = 0.4, 
-  headLength = 0.5, 
-  length = 2,
-  depth = 0.2
-}) {
-  
-  // Calculate and memorize the arrow shape whenever dimensions change
-  const arrowShape = useMemo(() => {
-    const shape = new THREE.Shape()
-    stemLength = length * (stemLength/(stemLength+headLength)); // Scale stemLength to fit within the total length of the arrow
-    headLength = length * (headLength/(stemLength+headLength));
-    
-    shape.moveTo(0, 0)
-    shape.lineTo(headWidth, stemLength)
-    shape.lineTo(stemWidth / 2, stemLength)
-    shape.lineTo(stemWidth / 2, headLength + stemLength)
-    shape.lineTo( -stemWidth / 2, headLength + stemLength)
-    shape.lineTo( -stemWidth / 2, stemLength )
-    shape.lineTo(-headWidth, stemLength )    
-    return shape;    
-  }, [stemWidth, stemLength, headWidth, headLength])
-
-  // Extrusion settings (depth, bevels, etc.)
-  const extrudeSettings = useMemo(() => ({
-    depth: depth,
-    bevelEnabled: true,
-    bevelThickness: 0.02,
-    bevelSize: 0.02,
-    bevelSegments: 3
-  }), [depth])
-
-  return (
-   <extrudeGeometry args={[arrowShape, extrudeSettings]}  />  
-  )
 }
