@@ -25,3 +25,8 @@ pnpm-debug.log*
 slask.txt
 src/slask.html
 src/components/cv.tsx
+
+# Other package managers (this project uses bun)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
