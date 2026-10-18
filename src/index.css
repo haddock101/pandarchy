@@ -23,26 +23,87 @@ body {
   left: unset !important;
 }
 
-.canvas-container {
-  pointer-events: none;
-  /* Disables all mouse/touch interactions */
-  user-select: none;
-}
 .buttonContainer {
   position: absolute;
   z-index: 10;
   top: 8px;
   right: 40px;
+  left: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  /* Let drags on the empty part of the row through to the canvas */
+  pointer-events: none;
 }
 .buttonContainer button {
-  position: relative;
+  pointer-events: auto;
   border: none;
-  width: 90px;
-  border-radius: 10px;
-  padding: 4px 12px;
-  margin-left: 8px;
+  width: 70px;
+  border-radius: 4px;
+  padding: 6px 8px;
   text-transform: uppercase;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 900;
+  color: white;
   cursor: pointer;
+}
+.buttonContainer button:hover {
+  filter: brightness(1.3);
+}
+.buttonContainer button:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* Hover info: properties of the object under the pointer, below the buttons */
+.debugPanel {
+  position: absolute;
+  z-index: 10;
+  top: 48px;
+  right: 12px;
+  width: 240px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgb(20 20 24 / 0.8);
+  color: #e6e6e6;
+  font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Purely informational: never block the scene underneath */
+  pointer-events: none;
+}
+.debugPanel-title {
+  margin-bottom: 4px;
+  font-weight: 700;
+  color: white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.debugPanel dl {
+  margin: 0;
+}
+.debugPanel-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.debugPanel dt {
+  color: #9aa0a6;
+}
+.debugPanel dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Charge readout next to the impulse marker while dragging */
+.chargeLabel {
+  transform: translate(26px, -50%);
+  font: 700 14px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-shadow: 0 0 3px rgb(0 0 0 / 0.9), 0 0 1px rgb(0 0 0);
+  pointer-events: none;
+  user-select: none;
 }

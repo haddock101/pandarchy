@@ -6,7 +6,7 @@ import { IMPULSE_LAYER, startCharge, updateCharge, releaseCharge, cancelCharge }
 type SeesawProps = {
   position: [number, number, number];
   impulseMultiplier: number;
-  // The board is far heavier than a ball, so its push is scaled by its mass; this tones that down.
+  // Clicks push with impulseMultiplier × the board's mass, so a heavy board still reacts; this tones that down.
   impulseDivisor?: number;
   toggleControls: (value?: boolean) => void;
 };

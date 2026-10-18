@@ -8,12 +8,17 @@ const deg = THREE.MathUtils.degToRad;
 function PinkMaterial() {
   return <meshStandardMaterial color="hotpink" side={THREE.DoubleSide} />;
 }
+function ChartreuseMaterial() {
+  return <meshStandardMaterial color="chartreuse" side={THREE.DoubleSide} />;
+}
 
 export function Corner({
+  id,
   radius,
   rotation,
   position,
 }: {
+  id: string;
   radius: number;
   rotation?: Euler;
   position?: Vector3;
@@ -22,7 +27,7 @@ export function Corner({
     position = [0, radius - 0.078, 0];
   }
   return (
-    <RigidBody friction={0} type="fixed" colliders="trimesh">
+    <RigidBody name={id} friction={0} type="fixed" colliders="trimesh">
       <mesh
         castShadow
         receiveShadow
@@ -39,11 +44,13 @@ export function Corner({
 }
 
 export function Quarterpipe({
+  id,
   radius,
   length,
   rotation,
   position,
 }: {
+  id: string;
   radius: number;
   length: number;
   rotation?: Euler;
@@ -53,7 +60,7 @@ export function Quarterpipe({
     position = [0, radius - 0.078, 0];
   }
   return (
-    <RigidBody friction={0} type="fixed" colliders="trimesh">
+    <RigidBody name={id} friction={0} type="fixed" colliders="trimesh">
       <mesh
         castShadow
         receiveShadow
@@ -70,21 +77,25 @@ export function Quarterpipe({
 }
 
 export function Halfpipe({
+  id,
   radius,
   length,
-  rotation
+  rotation,
+  position,
 }: {
+  id: string;
   radius: number;
   length: number;
   rotation?: Euler;
+  position?: Vector3;
 }) {
   return (
-    <RigidBody friction={0} type="fixed" colliders="trimesh">
+    <RigidBody name={id} friction={0} type="fixed" colliders="trimesh">
       <mesh
         castShadow
         receiveShadow
         rotation={rotation}
-        position={[0, radius - 0.078, 0]}
+        position={position ?? [0, 0.922, 0]}
       >
         <cylinderGeometry
           args={[radius, radius, length, 32, 1, true, 0, Math.PI]}
@@ -102,17 +113,19 @@ export function Halfpipe({
  */
 export function Pipe90({
   radius,
+  id,
   rotation,
   position,
   thetaLength = Math.PI,
 }: {
+  id: string;
   radius: number;
   rotation?: Euler;
   position?: Vector3;
   thetaLength?: number;
 }) {
   return (
-    <RigidBody friction={0} type="fixed" colliders="trimesh">
+    <RigidBody name={id} friction={0} type="fixed" colliders="trimesh">
       <mesh castShadow receiveShadow rotation={rotation} position={position}>
         {/* radius, tube, radialSegments, tubularSegments, arc, thetaStart, thetaLength */}
         <torusGeometry
@@ -125,16 +138,30 @@ export function Pipe90({
 }
 
 export function Funnel({
+  id,
   radius,
   position,
 }: {
+  id: string;
   radius: number;
   position?: Vector3;
 }) {
   return (
-    <RigidBody friction={0} type="fixed" colliders="trimesh" position={position}>
-      <mesh castShadow receiveShadow rotation={[Math.PI / 2, deg(90), deg(90)]}>
-        <cylinderGeometry args={[radius, 2, 1, 32, 1, true, 0]} />
+    <RigidBody name={id} friction={0} type="fixed" colliders="trimesh" position={position}>
+      <mesh receiveShadow position={[0, 1.375, 0]} rotation={[Math.PI / 2, deg(90), deg(90)]}>
+        <cylinderGeometry args={[radius/2.4, radius, 0.75, 64, 1, true, 0]} />
+        <ChartreuseMaterial />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0, 0.75, 0]} rotation={[Math.PI / 2, deg(90), deg(90)]}>
+        <cylinderGeometry args={[radius/3, radius/2.4, 0.5, 64, 1, true, 0]} />
+        <PinkMaterial />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0, 0.25, 0]} rotation={[Math.PI / 2, deg(90), deg(90)]}>
+        <cylinderGeometry args={[1, radius/3, 0.5, 64, 1, true, 0]} />
+        <ChartreuseMaterial />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0, -0.25, 0]} rotation={[Math.PI / 2, deg(90), deg(90)]}>
+        <cylinderGeometry args={[1, 1, 0.5, 64, 1, true, 0]} />
         <PinkMaterial />
       </mesh>
     </RigidBody>

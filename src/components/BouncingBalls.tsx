@@ -1,7 +1,7 @@
-import { useRef, useState, useMemo } from "react";
-import { useFrame, type Vector3 } from "@react-three/fiber";
-import { RapierRigidBody, RigidBody } from "@react-three/rapier";
-import { useCursor, useTexture } from "@react-three/drei";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { useFrame } from "@react-three/fiber";
+import { BallCollider, RapierRigidBody, RigidBody } from "@react-three/rapier";
+import { Html, useCursor, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import {
   IMPULSE_LAYER,
@@ -12,14 +12,38 @@ import {
   releaseCharge,
   cancelCharge,
 } from "./impulse.ts";
+import { clearHoverTarget, setHoverTarget, num, vec, type HoverTarget } from "../hoverInfo.ts";
 
 const SPHERE_SEGMENTS = 64; // Number of segments for the sphere geometry
+
+const BALL_TEXTURES = {
+  bumpMap: "/textures/sphereMap.jpg",
+  roughnessMap: "/textures/sphereMap.jpg",
+  aoMap: "/textures/stripe.jpg",
+};
+// Start loading right away, so the first ball doesn't suspend the scene (the black flash).
+useTexture.preload(Object.values(BALL_TEXTURES));
+
+// Where pooled balls wait, disabled, until they're spawned.
+const PARKED = { x: 0, y: -100, z: 0 };
+const ZERO = { x: 0, y: 0, z: 0 };
+const IDENTITY = { x: 0, y: 0, z: 0, w: 1 };
+// Hidden balls must not catch the pointer or the marker's ray.
+const noRaycast = () => {};
+
+/** One use of a pooled ball. A new `seq` re-spawns the ball even if it's already in play. */
+export type BallSpawn = {
+  seq: number;
+  position: [number, number, number];
+  colors: [string, string];
+  friction?: number;
+};
 
 // Gap between the marker's tip and the hovered surface.
 const MARKER_GAP = 0.005;
 const MARKER_SIZE = 0.25;
 // How far the marker is pulled back from the surface at full charge.
-const MAX_PULL = 1.5;
+const MAX_PULL = 3.5;
 const MARKER_COLOR_EMPTY = new THREE.Color("white");
 const MARKER_COLOR_FULL = new THREE.Color("red");
 
@@ -30,15 +54,16 @@ const hitNormal = new THREE.Vector3();
 
 type BouncingBallProps = {
   name: string;
-  position: Vector3;
+  /** Null keeps the ball parked: disabled, hidden and out of the simulation. */
+  spawn: BallSpawn | null;
   impulseMultiplier: number;
-  impulseDivisor: number; 
+  impulseDivisor: number;
   radius: number;
   restitution: number;
+  /** Continuous collision detection, so fast balls don't tunnel through thin pipe walls. */
+  ccd?: boolean;
   friction: number;
   density: number;
-  colors: [string, string];
-  initialColor?: string;
   canSleep?: boolean;
   togglePhysics: (value?: boolean) => void;
   toggleControls: (value?: boolean) => void;
@@ -46,15 +71,14 @@ type BouncingBallProps = {
 
 export function BouncingBall({
   name,
-  position,
+  spawn,
   impulseMultiplier,
   radius,
   density,
   impulseDivisor,
   restitution,
   friction,
-  colors: [colorA, colorB],
-  initialColor = colorA,
+  ccd = false,
   canSleep = true,
   togglePhysics,
   toggleControls,
@@ -62,31 +86,78 @@ export function BouncingBall({
   const ballRef = useRef<RapierRigidBody>(null!);
   const [hovered, setHovered] = useState(false);
   useCursor(hovered);
-  const [color, setColor] = useState(initialColor);
+  const textures = useTexture(BALL_TEXTURES);
 
-  const textures = useTexture({
-    bumpMap: "/textures/sphereMap.jpg",
-    roughnessMap: "/textures/sphereMap.jpg",
-    aoMap: "/textures/stripe.jpg",
+  const active = spawn !== null;
+  const [colorA, colorB] = spawn?.colors ?? ["white", "white"];
+  // Each push flips the colour; counting per spawn means a re-spawned ball starts on colorA again.
+  const [flips, setFlips] = useState({ seq: -1, count: 0 });
+  const flipCount = flips.seq === spawn?.seq ? flips.count : 0;
+  const color = flipCount % 2 === 0 ? colorA : colorB;
+
+  // Move the physics body to its spawn point (or park it) without remounting anything.
+  useEffect(() => {
+    const body = ballRef.current;
+    if (!body) return;
+    body.setLinvel(ZERO, false);
+    body.setAngvel(ZERO, false);
+    body.setRotation(IDENTITY, false);
+    if (!spawn) {
+      body.setTranslation(PARKED, false);
+      body.setEnabled(false);
+      return;
+    }
+    const [x, y, z] = spawn.position;
+    body.setTranslation({ x, y, z }, false);
+    body.setEnabled(true);
+    body.wakeUp();
+  }, [spawn]);
+
+  // Live properties for the debug panel
+  const hoverTarget = (): HoverTarget => ({
+    id: name,
+    title: `Ball · ${name}`,
+    read: () => {
+      const body = ballRef.current;
+      if (!body) return [];
+      const v = body.linvel();
+      return [
+        ["state", !body.isEnabled() ? "parked" : body.isSleeping() ? "sleeping" : "in play"],
+        ["colour", color],
+        ["position", vec(body.translation())],
+        ["velocity", vec(v)],
+        ["speed", num(Math.hypot(v.x, v.y, v.z))],
+        ["spin", vec(body.angvel())],
+        ["mass", num(body.mass(), 3)],
+        ["radius", num(radius)],
+        ["density", num(density)],
+        ["friction", num(friction)],
+        ["restitution", num(restitution)],
+        ["ccd", body.isCcdEnabled() ? "on" : "off"],
+        ["spawn #", String(spawn?.seq ?? "–")],
+      ];
+    },
   });
 
   return (
     <RigidBody
       name={name}
       ref={ballRef}
-      colliders="ball"
-      restitution={restitution}
-      friction={friction}
-      density={density} 
-      position={position}
+      // An explicit collider: auto colliders are only built from meshes visible at mount,
+      // and a parked ball's mesh is hidden, which left pooled balls with no collider and no mass.
+      colliders={false}
+      position={[PARKED.x, PARKED.y, PARKED.z]}
+      linearDamping={0.5}
       canSleep={canSleep}
+      ccd={ccd}
     >
+      <BallCollider args={[radius]} restitution={restitution} friction={friction} density={density} />
       <mesh
         castShadow
+        visible={active}
+        raycast={active ? THREE.Mesh.prototype.raycast : noRaycast}
         onUpdate={(mesh) => mesh.layers.enable(IMPULSE_LAYER)}
-        // onClick={handleClick}
         onPointerDown={(e) => {
-          // togglePhysics(false)
           toggleControls(false)
           startCharge(e)
         }}
@@ -96,22 +167,25 @@ export function BouncingBall({
           togglePhysics(false)
           toggleControls(true)
           if (releaseCharge(ballRef.current, impulseMultiplier / impulseDivisor)) {
-            setColor((c) => (c === colorA ? colorB : colorA))
+            setFlips({ seq: spawn?.seq ?? -1, count: flipCount + 1 })
           }
         }}
         onPointerCancel={() => {
           cancelCharge()
           toggleControls(true)
         }}
-        onPointerOver={() => {
+        onPointerOver={(e) => {
+          // Only the nearest object under the pointer claims the hover, not the cup behind the ball
+          e.stopPropagation()
           setHovered(true)
+          setHoverTarget(hoverTarget())
           togglePhysics(true)
           toggleControls(true)
         }}
         onPointerOut={() => {
           setHovered(false)
+          clearHoverTarget(name)
           togglePhysics(false)
-          // toggleControls(false)
         }}
       >
         <sphereGeometry args={[radius, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} />
@@ -126,6 +200,8 @@ export function ImpulseMarker() {
   const haloRef = useRef<THREE.Mesh>(null);
   const stemRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
+  const labelAnchorRef = useRef<THREE.Group>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
 
   useFrame(({ pointer, camera, scene }) => {
     const marker = markerRef.current;
@@ -133,6 +209,9 @@ export function ImpulseMarker() {
     const stem = stemRef.current;
     const material = materialRef.current;
     if (!marker || !halo || !stem || !material) return;
+    // The charge readout only shows while a push is being charged
+    const label = labelRef.current;
+    if (label) label.style.display = aim.active ? "" : "none";
 
     let point: THREE.Vector3;
     if (aim.active) {
@@ -164,6 +243,14 @@ export function ImpulseMarker() {
 
     material.color.lerpColors(MARKER_COLOR_EMPTY, MARKER_COLOR_FULL, charge);
     material.emissive.copy(material.color);
+
+    // Written straight to the DOM every frame, so charging doesn't re-render React
+    const anchor = labelAnchorRef.current;
+    if (aim.active && anchor && label) {
+      anchor.position.copy(marker.position);
+      label.textContent = `${Math.round(charge * 100)}%`;
+      label.style.color = material.color.getStyle();
+    }
   });
 
   const halo = useMemo(() => {
@@ -175,6 +262,13 @@ export function ImpulseMarker() {
 
   // const halo = new THREE.ExtrudeGeometry([{arrowShape, extrudeSettings}]);
   return (
+    <>
+    {/* The charge readout follows the marker, offset on screen so it doesn't cover it */}
+    <group ref={labelAnchorRef}>
+      <Html className="chargeLabel" style={{ display: "none" }} ref={labelRef} zIndexRange={[20, 0]}>
+        0%
+      </Html>
+    </group>
     <group ref={markerRef} name="marker" visible={false}>
       <mesh geometry={halo} castShadow ref={haloRef}>
         <meshStandardMaterial
@@ -189,5 +283,6 @@ export function ImpulseMarker() {
         <meshStandardMaterial color="white" emissive="white" emissiveIntensity={1} />
       </mesh>
     </group>
+    </>
   );
 }

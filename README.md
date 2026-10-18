@@ -14,14 +14,27 @@ bun run lint
 bun run buildpush  # build and rsync dist/ to the web server
 ```
 
-Click a ball to push it away from the camera. The **Debug Controls** panel
-(top) toggles the Rapier collider view, the invisible container walls and the
-bounce strength. With `debugState` on, sensor hits are logged to the console.
+## Playing
+
+- **Press, drag and release** on a ball or the catapult arm to push it. The
+  further you drag, the harder the push; the marker pulls back and turns red as
+  it charges. Works with touch too.
+- **Load** drops a ball into the catapult's right cup, **Random** drops
+  one from above, **Reset** clears all balls and **Pause** freezes physics.
+- The settings panel (top, collapsed) toggles the Rapier collider view
+  (`debugState`), the invisible container walls, the push strength
+  (`impulseMultiplier`), how many balls can be in play (`maxBalls`; past that,
+  the oldest ball is reused) and an FPS meter (`showStats`). With `debugState` on,
+  collisions and sensor hits are logged to the console.
+  Settings are remembered in the browser's localStorage between visits.
+- With `hoverInfo` on (the default), hovering a ball or the catapult shows its
+  live properties in a panel at the top right.
 
 ## Layout
 
 - `src/App.tsx` – the scene: lights, environment, physics world and its contents
-- `src/components/` – scene pieces (balls, pipes, floor, walls, GLB models)
+- `src/components/` – scene pieces (balls, catapult, pipes, floor, walls, GLB models)
+- `src/components/impulse.ts` – the shared press–drag–release push logic
 - `public/` – runtime assets loaded by URL: `hdr/`, `textures/`, `glb/`
 
 ## Assets
