@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { startCharge, updateCharge, releaseCharge, cancelCharge } from './impulse.ts';
 import { BASE_HEIGHT, BASE_Y, BOARD_SIZE, CONE_BOTTOM_Y, CUP_ANGLE, CUP_LEFT_ANGLE, CUP_RADIUS, CUP_RIGHT_ANGLE, CUP_X, CUP_Y, PIVOT_Y, REST_ANGLE } from './catapultLayout.ts';
 import { CATAPULT_ARM_GROUPS } from '../collisionGroups.ts';
+import { ATTRACTOR, BALL, CATAPULT } from '../config.ts';
 import { clearHoverTarget, setHoverTarget, deg, num, type HoverTarget } from '../hoverInfo.ts';
 import type { ThreeEvent } from '@react-three/fiber';
 import GreenButton from './GreenButton.tsx';
@@ -16,8 +17,7 @@ type CatapultProps = {
   /** Rotation around the vertical axis through `position`, in radians. At 0 the arm runs along x, low cup at +x. */
   yaw?: number;
   impulseMultiplier: number;
-  // Clicks push with impulseMultiplier × the arm's mass, so they feel the same whatever ARM_MASS is; this scales that.
-  // The default 0.7 lets a 90–100% drag land a ball from the right cup in the funnel (at impulseMultiplier 10).
+  /** A full-charge push is impulseMultiplier × the arm's mass / impulseDivisor. Default in config.ts. */
   impulseDivisor?: number;
   toggleControls: (value?: boolean) => void;
   /** Called when a push is released on the arm. */
@@ -29,35 +29,30 @@ type CatapultProps = {
   onTurn?: (turning: boolean) => void;
 };
 
-// Light enough that a ball (mass ~0.5) landing in a cup tips the arm. Clicks scale with the mass, so they feel the same.
-const ARM_MASS = 15;
-// A soft spring in the hinge rewinds the arm to rest (right cup on the floor) after a launch, ready for
-// the next ball. Its target is a degree past the floor, so the arm settles pressed gently against it.
+// Tuning lives in config.ts (CATAPULT); these are the names the code below uses.
+const ARM_MASS = CATAPULT.armMass;
+// A soft spring in the hinge rewinds the arm to rest (low cup on the floor) after a launch, ready for the
+// next ball. Its target is slightly past rest, so the arm settles pressed gently onto the floor.
 // Rapier's default motor model is acceleration-based, so these don't depend on ARM_MASS.
-// Tuned in a headless Rapier run: back at rest ~2s after a launch, without flinging the ball on its own.
-const RETURN_TARGET = REST_ANGLE - THREE.MathUtils.degToRad(1.2);
-const RETURN_STIFFNESS = 20;
-const RETURN_DAMPING = 9;
+const RETURN_TARGET = REST_ANGLE - CATAPULT.spring.pressPastRest;
+const RETURN_STIFFNESS = CATAPULT.spring.stiffness;
+const RETURN_DAMPING = CATAPULT.spring.damping;
 
 // When a ball lands in the high cup, the catapult turns half a circle around its base while the arm
 // tips the other way, so that cup ends up low where the other one was, ready to launch.
 // It happens in phases, so the arm never sweeps through the chute: the half turn comes first with the
 // tilt unchanged (the low end swings round low, the ball's end stays high), and only then does the arm
 // tip over, once the low end is clear of the chute beside halfpipe2's end.
-const TURN_DELAY = 0.5; // seconds for the ball to settle in the cup first
-const TURN_DURATION = 2.5; // seconds for the half turn
-const TIP_DURATION = 1.5; // seconds for the arm to tip over afterwards, with the ball still held
-// During the half turn the low end is lifted this far off the floor, so it doesn't drag along it
-const TURN_LIFT = THREE.MathUtils.degToRad(2);
+const { delay: TURN_DELAY, duration: TURN_DURATION, tipDuration: TIP_DURATION, lift: TURN_LIFT } = CATAPULT.turn;
 // Sensors sit where a ball rests in each cup (the bowl's sphere centre, less the ball's play in it)
 const SENSOR_RADIUS = 0.3;
-const SENSOR_Y = CUP_Y - (CUP_RADIUS - 0.5);
+const SENSOR_Y = CUP_Y - (CUP_RADIUS - BALL.radius);
 const easeInOut = (t: number) => t * t * (3 - 2 * t);
 // While a ball is carried round, the Attractor holds it firmly: a constant pull (applied as an impulse
 // every step, so ~0.25 × 60 / 0.52 ≈ 29 m/s², about 3 g for a ball) towards a point below the bowl,
 // which presses the ball down into the cup. The usual linear pull fades to almost nothing near its centre.
-const HOLD_STRENGTH = 0.25;
-const HOLD_Y = CUP_Y - CUP_RADIUS - 0.5;
+const HOLD_STRENGTH = CATAPULT.turn.holdStrength;
+const HOLD_Y = CUP_Y - CUP_RADIUS - BALL.radius;
 
 // Scratch values for reading the arm's hinge angle with the catapult's own yaw taken out
 const UP = new THREE.Vector3(0, 1, 0);
@@ -69,11 +64,11 @@ export function Catapult({
   position,
   yaw = 0,
   impulseMultiplier,
-  impulseDivisor = 0.2,
+  impulseDivisor = CATAPULT.pushDivisor,
   toggleControls,
   onLaunch,
   attractorStrength = 0,
-  attractorRange = 2,
+  attractorRange = ATTRACTOR.range,
   onTurn,
 }: CatapultProps) {
   const baseRef = useRef<RapierRigidBody>(null!);

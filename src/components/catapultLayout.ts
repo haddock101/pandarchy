@@ -1,8 +1,10 @@
 // The catapult's measurements, shared so the scene can line things up with its cups.
 // All positions are relative to the catapult's own position.
 
-/** Top of the checkered floor (Floor.tsx's box, as scaled in App). */
-export const FLOOR_Y = -0.08;
+import { SCENE } from "../config.ts";
+
+/** Top of the checkered floor in world space (set in config.ts). */
+export const FLOOR_Y = SCENE.floorY;
 
 export const BASE_HEIGHT = 1;
 export const BASE_Y = 0.42; // centre of the base cone

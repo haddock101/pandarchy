@@ -3,6 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import { getControlledBall, getControlledBallObject } from "../controlledBall.ts";
+import { BALL } from "../config.ts";
 
 type SelectedBallAuraProps = {
   /** Radius of the balls it surrounds. */
@@ -76,8 +77,8 @@ const sparkleFragment = /* glsl */ `
   }
 `;
 
-/** Marks the ball the keyboard controls (the last hovered one) with a glowing halo and a few sparkles. */
-export function SelectedBallAura({ ballRadius = 0.5, color = "#9ff3ff" }: SelectedBallAuraProps) {
+/** Marks the ball the keyboard controls (the last one clicked or touched) with a glowing halo and a few sparkles. */
+export function SelectedBallAura({ ballRadius = BALL.radius, color = "#9ff3ff" }: SelectedBallAuraProps) {
   const groupRef = useRef<THREE.Group>(null);
   const discRef = useRef<THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial>>(null);
   const sparklesRef = useRef<THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>>(null);

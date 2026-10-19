@@ -1,5 +1,7 @@
 import { Canvas } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
+
+
 import { Stats, OrbitControls, Preload } from "@react-three/drei";
 import { Leva, useControls } from "leva";
 import * as THREE from "three";
@@ -19,30 +21,23 @@ import { Catapult } from "./components/Catapult.tsx";
 import { FLOOR_Y, lowCupWorld } from "./components/catapultLayout.ts";
 import { generateSeededKey } from "./components/playfulRandomId.ts";
 import { restored, saveSettings } from "./persistedSettings.ts";
+import { ATTRACTOR, BALL, CATAPULT, CHUTE, SETTINGS_DEFAULTS } from "./config.ts";
 
 const deg = THREE.MathUtils.degToRad;
 
-// The catapult is placed by the bottom of its base cone, standing on the floor, and turned by one yaw
-// around it. It rests with its low cup on the floor, ready to launch; the raised cup sits under the end
-// of halfpipe2, so a ball coming down the chute lands in it and tips the arm.
-const CATAPULT_POSITION: [number, number, number] = [-0.025, FLOOR_Y, 1.525];
-const CATAPULT_YAW = deg(-35);
-const [CUP_X_AT_REST, CUP_Y_AT_REST, CUP_Z_AT_REST] = lowCupWorld(CATAPULT_POSITION, CATAPULT_YAW);
+// The catapult (placed by config.ts's CATAPULT.position and .yaw) rests with its low cup on the floor,
+// ready to launch; the raised cup sits under the end of halfpipe2, so a ball coming down the chute lands in it.
+const [CUP_X_AT_REST, CUP_Y_AT_REST, CUP_Z_AT_REST] = lowCupWorld(CATAPULT.position, CATAPULT.yaw);
 // The Attractor lives in the catapult, in whichever cup holds the ball; at rest that's the low cup,
 // just above the bowl's sphere centre. Its position here only sizes the floor rings.
 const ATTRACTOR_POSITION: [number, number, number] = [CUP_X_AT_REST, CUP_Y_AT_REST + 0.2, CUP_Z_AT_REST];
-const ATTRACTOR_RANGE = 2;
-// Applied as an impulse every physics step, so even this pulls a ball at up to ~3× gravity.
-const ATTRACTOR_STRENGTH = 0.35;
-// After a launch the pull is switched off for a moment, or it drags the ball straight back into the cup.
-const ATTRACTOR_LAUNCH_PAUSE_MS = 1500;
 // The field visual lies on the floor under the cup, as wide as the attraction reaches at floor level.
 const FIELD_POSITION: [number, number, number] = [CUP_X_AT_REST, FLOOR_Y + 0.015, CUP_Z_AT_REST];
-const FIELD_RADIUS = Math.sqrt(ATTRACTOR_RANGE ** 2 - (ATTRACTOR_POSITION[1] - FLOOR_Y) ** 2);
+const FIELD_RADIUS = Math.sqrt(ATTRACTOR.range ** 2 - (ATTRACTOR_POSITION[1] - FLOOR_Y) ** 2);
 
-// Slope of the chutes, in radians. Each part tilts about the seam where it joins the next, so the
-// pipe ends stay lined up at any slope; the funnel is counter-rotated to stay exactly vertical.
-const CHUTE_SLOPE = 0.05;
+// The chutes slope by config.ts's CHUTE.slope. Each part tilts about the seam where it joins the next, so
+// the pipe ends stay lined up at any slope; the funnel is counter-rotated to stay exactly vertical.
+const CHUTE_SLOPE = CHUTE.slope;
 // Seams in the chutes group's own coordinates: where pipe904 meets pipe901 (the pipe runs along z
 // there), and where halfpipe1 meets pipe902 (running along x). Rotating about an axis the pipe
 // runs along moves neither its end nor its direction, so these seams stay exact.
@@ -58,7 +53,11 @@ function createSpawn(seq: number, overrides: Partial<BallSpawn> = {}): BallSpawn
   return {
     seq,
     // Drop in from above, slightly offset so stacked balls don't spawn inside each other
-    position: [(Math.random() - 4) * 0.5, 8.5, (Math.random() - 4) * 0.5],
+    position: [
+      BALL.randomDrop.x + Math.random() * BALL.randomDrop.spread,
+      BALL.randomDrop.height,
+      BALL.randomDrop.z + Math.random() * BALL.randomDrop.spread,
+    ],
     colors: [randomColor(), randomColor()],
     ...overrides,
   };
@@ -80,15 +79,15 @@ export default function App() {
   // Defaults come from localStorage when saved, and every change is saved back
   const controls = useControls({
     showContainer: restored("showContainer", false),
-    containerOpacity: { value: restored("containerOpacity", 0.4), min: 0, max: 1, step: 0.1 },
-    impulseMultiplier: { value: restored("impulseMultiplier", 10), min: 0.0001, max: 100, step: 0.0001 },
-    maxBalls: { value: restored("maxBalls", 12), min: 1, max: 50, step: 1 },
+    containerOpacity: { value: restored("containerOpacity", SETTINGS_DEFAULTS.containerOpacity), min: 0, max: 1, step: 0.1 },
+    impulseMultiplier: { value: restored("impulseMultiplier", SETTINGS_DEFAULTS.impulseMultiplier), min: 0.0001, max: 100, step: 0.0001 },
+    maxBalls: { value: restored("maxBalls", SETTINGS_DEFAULTS.maxBalls), min: 1, max: 50, step: 1 },
     debugState: restored("debugState", false),
     showStats: restored("showStats", false),
     hoverInfo: restored("hoverInfo", true),
-    cameraFov: { value: restored("cameraFov", 49), min: 10, max: 100, step: 1 },
-    cameraPosition: { value: restored("cameraPosition", [14.5, 13.5, 24.5] as [number, number, number]) },
-    cameraLookAt: { value: restored("cameraLookAt", [0, 0, 0] as [number, number, number]) },
+    cameraFov: { value: restored("cameraFov", SETTINGS_DEFAULTS.cameraFov), min: 10, max: 100, step: 1 },
+    cameraPosition: { value: restored("cameraPosition", SETTINGS_DEFAULTS.cameraPosition) },
+    cameraLookAt: { value: restored("cameraLookAt", SETTINGS_DEFAULTS.cameraLookAt) },
   });
   const serializedControls = JSON.stringify(controls);
   useEffect(() => saveSettings(JSON.parse(serializedControls)), [serializedControls]);
@@ -118,7 +117,7 @@ export default function App() {
     setSpawns((prev) => placeSpawn(prev, maxBalls, spawn));
   };
   // Drops a ball straight into the catapult's low cup, just above where it comes to rest
-  const loadBall = () => addBall({ position: [CUP_X_AT_REST, CUP_Y_AT_REST + 0.1, CUP_Z_AT_REST], friction: 0.55 });
+  const loadBall = () => addBall({ position: [CUP_X_AT_REST, CUP_Y_AT_REST + 0.1, CUP_Z_AT_REST], friction: BALL.loadedFriction });
   
   const [attractorOn, setAttractorOn] = useState(true);
   const [catapultTurning, setCatapultTurning] = useState(false);
@@ -126,7 +125,7 @@ export default function App() {
   const onLaunch = () => {
     setAttractorOn(false);
     clearTimeout(attractorTimer.current);
-    attractorTimer.current = setTimeout(() => setAttractorOn(true), ATTRACTOR_LAUNCH_PAUSE_MS);
+    attractorTimer.current = setTimeout(() => setAttractorOn(true), ATTRACTOR.launchPauseMs);
   };
   useEffect(() => () => clearTimeout(attractorTimer.current), []);
 
@@ -170,7 +169,7 @@ export default function App() {
 
         {/* Everything interactive and physical lives inside the Physics context */}
         <Physics gravity={[0, -9.81, 0]} debug={controls.debugState} paused={isPaused}>
-          {/* W/A/S/D and space steer the last hovered ball, marked with an aura */}
+          {/* W/A/S/D (or arrows) and space steer the last clicked ball, marked with an aura */}
           <KeyboardControls />
           <SelectedBallAura />
           {/* Suspense keeps the rest of the scene on screen while the ball textures load */}
@@ -181,12 +180,12 @@ export default function App() {
                 name={name}
                 spawn={spawns[i] ?? null}
                 impulseMultiplier={controls.impulseMultiplier}
-                impulseDivisor={1}
-                radius={0.5}
-                density={1}
+                impulseDivisor={BALL.pushDivisor}
+                radius={BALL.radius}
+                density={BALL.density}
                 ccd
-                restitution={0.1}
-                friction={spawns[i]?.friction ?? 0.3}
+                restitution={BALL.restitution}
+                friction={spawns[i]?.friction ?? BALL.friction}
                 canSleep={false}
                 togglePhysics={togglePausePhysics}
                 toggleControls={toggleControls}
@@ -199,13 +198,13 @@ export default function App() {
           {/* The rings mark the low cup, where the Attractor holds a ball; they fade while it moves */}
           <AttractorField position={FIELD_POSITION} radius={FIELD_RADIUS} active={attractorOn && !catapultTurning} />
           <Catapult
-            position={CATAPULT_POSITION}
-            yaw={CATAPULT_YAW}
+            position={CATAPULT.position}
+            yaw={CATAPULT.yaw}
             impulseMultiplier={controls.impulseMultiplier}
             toggleControls={toggleControls}
             onLaunch={onLaunch}
-            attractorStrength={attractorOn ? ATTRACTOR_STRENGTH : 0}
-            attractorRange={ATTRACTOR_RANGE}
+            attractorStrength={attractorOn ? ATTRACTOR.strength : 0}
+            attractorRange={ATTRACTOR.range}
             onTurn={setCatapultTurning}
           />
 

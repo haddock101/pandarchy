@@ -5,6 +5,7 @@ import { CHUTE_GROUPS } from "../collisionGroups.ts";
 import { onChuteContactEnter, onChuteContactExit } from "./chuteDamping.ts";
 import type { Euler, Vector3 } from "@react-three/fiber";
 
+
 const deg = THREE.MathUtils.degToRad;
 
 function PinkMaterial() {
@@ -135,6 +136,7 @@ export function Pipe90({
   return (
     <RigidBody
       name={id}
+      ccd={true}
       collisionGroups={CHUTE_GROUPS}
       // Balls roll with little drag while touching any chute piece
       onCollisionEnter={onChuteContactEnter}

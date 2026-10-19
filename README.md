@@ -20,7 +20,7 @@ bun run buildpush  # build and rsync dist/ to the web server
   the catapult arm, to push it. The
   further you drag, the harder the push; the marker pulls back and turns red as
   it charges. Works with touch too.
-- **W/A/S/D** push the last hovered ball across the floor (relative to the
+- **W/A/S/D** or the **arrow keys** push the last clicked or touched ball across the floor (relative to the
   camera) and **space** makes it jump.
 - **Load** drops a ball into the catapult's right cup, **Random** drops
   one from above, **Reset** clears all balls and **Pause** freezes physics.
@@ -34,6 +34,9 @@ bun run buildpush  # build and rsync dist/ to the web server
   live properties in a panel at the top right.
 
 ## Layout
+
+- `src/config.ts` – every gameplay value you'd tune by hand (balls, pushes, touch, catapult,
+  attractor, chute slope, keyboard) and the settings panel's defaults
 
 - `src/App.tsx` – the scene: lights, environment, physics world and its contents
 - `src/components/` – scene pieces (balls, catapult, pipes, floor, walls, GLB models)

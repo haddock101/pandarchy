@@ -1,20 +1,15 @@
 import type { ThreeEvent } from "@react-three/fiber";
 import type { RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
+import { PUSH, TOUCH } from "../config.ts";
 
 // Meshes that can be pushed are also on this layer, so the marker can raycast only against them.
 export const IMPULSE_LAYER = 1;
 
-// How far (in world units) the marker is pulled back from the surface at full charge.
-// The drag works in the same units, so the marker always sits under the pointer.
-export const MAX_PULL = 2.5;
-// A plain tap still gives a small nudge.
-const MIN_CHARGE = 0.1;
-// With a finger, MAX_PULL can be only a few dozen pixels on a phone screen: too twitchy, and hidden
-// under the finger. Touch drags are stretched so a full charge takes at least this much finger
-// movement (the marker then trails the finger rather than sitting under it), within a limit.
-const MIN_TOUCH_PULL_PX = 150;
-const MAX_TOUCH_STRETCH = 4;
+// The drag works in the same world units as PUSH.maxPull, so with a mouse the marker sits under the pointer.
+// With a finger, a full pull can be only a few dozen pixels on a phone: too twitchy, and hidden under the
+// finger. Touch drags are stretched so a full charge takes at least TOUCH.minPullPx of finger movement
+// (the marker then trails the finger rather than sitting under it), within TOUCH.maxStretch.
 // Below this angle between the pointer's ray and the pull line, the line looks like a dot on
 // screen and can't be dragged along, so the pull is measured across the screen instead.
 const MIN_LINE_ANGLE = THREE.MathUtils.degToRad(15);
@@ -42,11 +37,11 @@ const onPlane = new THREE.Vector3();
 const screenA = new THREE.Vector3();
 const screenB = new THREE.Vector3();
 
-/** How many pixels a full pull (MAX_PULL along the normal from the aim point) covers on screen. */
+/** How many pixels a full pull (PUSH.maxPull along the normal from the aim point) covers on screen. */
 function fullPullPixels(e: ThreeEvent<PointerEvent>) {
   const { width, height } = (e.nativeEvent.target as Element).getBoundingClientRect();
   screenA.copy(aim.point).project(e.camera);
-  screenB.copy(aim.point).addScaledVector(aim.normal, MAX_PULL).project(e.camera);
+  screenB.copy(aim.point).addScaledVector(aim.normal, PUSH.maxPull).project(e.camera);
   return Math.hypot(((screenB.x - screenA.x) * width) / 2, ((screenB.y - screenA.y) * height) / 2);
 }
 
@@ -71,7 +66,7 @@ export function startCharge(e: ThreeEvent<PointerEvent>, surface?: { point: THRE
   impulseDirection.copy(aim.normal);
   aim.stretch =
     aim.pointerType === "touch"
-      ? THREE.MathUtils.clamp(MIN_TOUCH_PULL_PX / Math.max(fullPullPixels(e), 1), 1, MAX_TOUCH_STRETCH)
+      ? THREE.MathUtils.clamp(TOUCH.minPullPx / Math.max(fullPullPixels(e), 1), 1, TOUCH.maxStretch)
       : 1;
 }
 
@@ -97,7 +92,7 @@ function pullUnderPointer(ray: THREE.Ray) {
 // Drag: pulling the marker back from the surface, like a slingshot, sets the strength.
 export function updateCharge(e: ThreeEvent<PointerEvent>) {
   if (!aim.active) return;
-  aim.charge = THREE.MathUtils.clamp(pullUnderPointer(e.ray) / (MAX_PULL * aim.stretch), 0, 1);
+  aim.charge = THREE.MathUtils.clamp(pullUnderPointer(e.ray) / (PUSH.maxPull * aim.stretch), 0, 1);
 }
 
 // Release: push the body into the surface. Returns whether an impulse was applied.
@@ -105,7 +100,7 @@ export function releaseCharge(body: RapierRigidBody | null, maxStrength: number)
   if (!aim.active) return false;
   aim.active = false;
   if (!body) return false;
-  impulse.copy(aim.normal).negate().multiplyScalar(Math.max(aim.charge, MIN_CHARGE) * maxStrength);
+  impulse.copy(aim.normal).negate().multiplyScalar(Math.max(aim.charge, PUSH.minCharge) * maxStrength);
   body.applyImpulseAtPoint(impulse, aim.point, true);
   // A short buzz on phones that support it (Android; iOS ignores it), stronger for a fuller charge
   if (aim.pointerType === "touch") navigator.vibrate?.(10 + Math.round(aim.charge * 30));

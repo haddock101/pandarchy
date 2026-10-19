@@ -7,7 +7,6 @@ import {
   IMPULSE_LAYER,
   aim,
   impulseDirection,
-  MAX_PULL,
   startCharge,
   updateCharge,
   releaseCharge,
@@ -15,7 +14,8 @@ import {
 } from "./impulse.ts";
 import { IS_TOUCH_SCREEN } from "../touch.ts";
 import { getControlledBall, setControlledBall } from "../controlledBall.ts";
-import { BALL_LINEAR_DAMPING, resetChuteDamping } from "./chuteDamping.ts";
+import { resetChuteDamping } from "./chuteDamping.ts";
+import { BALL, PUSH, TOUCH } from "../config.ts";
 import { clearHoverTarget, setHoverTarget, num, vec, type HoverTarget } from "../hoverInfo.ts";
 
 const SPHERE_SEGMENTS = 64; // Number of segments for the sphere geometry
@@ -34,9 +34,7 @@ const ZERO = { x: 0, y: 0, z: 0 };
 const IDENTITY = { x: 0, y: 0, z: 0, w: 1 };
 // Hidden balls must not catch the pointer or the marker's ray.
 const noRaycast = () => {};
-// Touch screens get an invisible, bigger sphere around each ball to grab it by.
-// On a phone a ball can be only ~10px in radius; 2.2× makes a ~44px-wide target, the usual minimum
-const TOUCH_TARGET_SCALE = 2.2;
+// Touch screens get an invisible, bigger sphere around each ball to grab it by (TOUCH.ballTargetScale)
 const TOUCH_TARGET_NAME = "ball-touch-target";
 
 /** One use of a pooled ball. A new `seq` re-spawns the ball even if it's already in play. */
@@ -152,7 +150,7 @@ export function BouncingBall({
         ["restitution", num(restitution)],
         ["ccd", body.isCcdEnabled() ? "on" : "off"],
         ["spawn #", String(spawn?.seq ?? "–")],
-        ["keyboard", getControlledBall() === body ? "W A S D, space" : "–"],
+        ["keyboard", getControlledBall() === body ? "W A S D / arrows, space" : "–"],
       ];
     },
   });
@@ -165,7 +163,7 @@ export function BouncingBall({
       // and a parked ball's mesh is hidden, which left pooled balls with no collider and no mass.
       colliders={false}
       position={[PARKED.x, PARKED.y, PARKED.z]}
-      linearDamping={BALL_LINEAR_DAMPING}
+      linearDamping={BALL.linearDamping}
       canSleep={canSleep}
       ccd={ccd}
     >
@@ -175,6 +173,8 @@ export function BouncingBall({
         ref={ballObjectRef}
         onPointerDown={(e) => {
           toggleControls(false)
+          // Clicking or touching a ball selects it: the keyboard (W/A/S/D or arrows, space) steers it
+          setControlledBall(ballRef.current, ballObjectRef.current)
           // A press on the enlarged touch target is moved onto the ball's surface, towards the press
           startCharge(e, e.object.name === TOUCH_TARGET_NAME ? surfaceTowards(e.point) : undefined)
         }}
@@ -196,8 +196,6 @@ export function BouncingBall({
           e.stopPropagation()
           setHovered(true)
           setHoverTarget(hoverTarget())
-          // The keyboard (W/A/S/D, space) steers the last hovered ball
-          setControlledBall(ballRef.current, ballObjectRef.current)
           togglePhysics(true)
           toggleControls(true)
         }}
@@ -220,7 +218,7 @@ export function BouncingBall({
             Hidden meshes still catch pointer events; it stays off the marker's layer. */}
         {IS_TOUCH_SCREEN && (
           <mesh name={TOUCH_TARGET_NAME} visible={false} raycast={active ? THREE.Mesh.prototype.raycast : noRaycast}>
-            <sphereGeometry args={[radius * TOUCH_TARGET_SCALE, 16, 12]} />
+            <sphereGeometry args={[radius * TOUCH.ballTargetScale, 16, 12]} />
             <meshBasicMaterial />
           </mesh>
         )}
@@ -265,7 +263,7 @@ export function ImpulseMarker() {
 
     // Pull the marker back from the surface like a slingshot: the further, the stronger.
     const charge = aim.active ? aim.charge : 0;
-    const pull = MARKER_GAP + charge * MAX_PULL;
+    const pull = MARKER_GAP + charge * PUSH.maxPull;
     marker.position.copy(point).addScaledVector(hitNormal, pull);
     marker.lookAt(point);
 

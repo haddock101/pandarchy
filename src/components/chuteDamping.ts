@@ -1,13 +1,9 @@
 import type { CollisionEnterPayload, CollisionExitPayload, RapierRigidBody } from "@react-three/rapier";
+import { BALL } from "../config.ts";
 
-// Balls normally have some air drag (linear damping), which the catapult throws are tuned with.
-// That same drag caps a ball rolling down the gently sloped chute at about
-// g · sin(slope) / damping ≈ 9.81 × 0.05 / 0.3 ≈ 1.6 m/s, so inside the chute it's turned down.
-
-/** A ball's usual linear damping, everywhere outside the chute. */
-export const BALL_LINEAR_DAMPING = 0.4;
-/** Linear damping while a ball touches any chute piece. */
-export const CHUTE_LINEAR_DAMPING = 0.01;
+// Balls normally have some air drag (BALL.linearDamping), which the catapult throws are tuned with.
+// That same drag caps a ball rolling down the gently sloped chute at g · sin(slope) / damping, so while
+// a ball touches a chute piece it gets BALL.chuteLinearDamping instead.
 
 // Which chute colliders each ball is touching. At a seam a ball briefly touches two pieces, so it
 // only gets its usual drag back once it has left all of them. A set rather than a count: the
@@ -24,7 +20,7 @@ export function onChuteContactEnter(payload: CollisionEnterPayload) {
   if (!ball || !isBall(payload)) return;
   let pieces = touching.get(ball.handle);
   if (!pieces) touching.set(ball.handle, (pieces = new Set()));
-  if (pieces.size === 0) ball.setLinearDamping(CHUTE_LINEAR_DAMPING);
+  if (pieces.size === 0) ball.setLinearDamping(BALL.chuteLinearDamping);
   pieces.add(payload.target.collider.handle);
 }
 
@@ -36,11 +32,11 @@ export function onChuteContactExit(payload: CollisionExitPayload) {
   pieces?.delete(payload.target.collider.handle);
   if (pieces?.size) return;
   touching.delete(ball.handle);
-  ball.setLinearDamping(BALL_LINEAR_DAMPING);
+  ball.setLinearDamping(BALL.linearDamping);
 }
 
 /** Forget a ball's chute contacts and restore its usual drag, e.g. when a pooled ball is respawned. */
 export function resetChuteDamping(ball: RapierRigidBody) {
   touching.delete(ball.handle);
-  ball.setLinearDamping(BALL_LINEAR_DAMPING);
+  ball.setLinearDamping(BALL.linearDamping);
 }

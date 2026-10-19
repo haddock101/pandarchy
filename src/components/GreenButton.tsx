@@ -3,6 +3,7 @@ import { useFrame, type ThreeElements } from "@react-three/fiber";
 import * as THREE from "three";
 import { IMPULSE_LAYER } from "./impulse.ts";
 import { IS_TOUCH_SCREEN } from "../touch.ts";
+import { TOUCH } from "../config.ts";
 
 type GreenButtonProps = ThreeElements["group"] & {
   position?: [number, number, number];
@@ -18,8 +19,7 @@ const GREEN = new THREE.Color("chartreuse");
 const PULSE_SPEED = 2.2; // radians per second
 const RIPPLE_PERIOD = 2.2; // seconds
 const RIPPLE_SPREAD = 2.2; // how far the ring grows, in cap radii
-// On a phone a button is only a few pixels wide, so touch screens get a bigger, invisible target
-const TOUCH_TARGET_RADIUS = 0.6;
+// On a phone a button is only a few pixels wide, so touch screens get a bigger, invisible target (TOUCH.buttonTargetRadius)
 
 /**
  * A push button on the catapult board: press and drag on it to charge a launch. Pointer handlers passed
@@ -31,8 +31,8 @@ function GreenButton({ position = [-2, 0.05, 0], hovered = false, lit = true, ..
   // Each button starts its pulse at a different moment, so two side by side don't blink in unison
   const phase = useMemo(() => position[0] * 1.7, [position]);
 
-  useFrame(({ elapsed }) => {
-    const t = elapsed + phase;
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime + phase;
     const material = capMaterial.current;
     if (material) {
       const breathe = 0.5 + 0.5 * Math.sin(t * PULSE_SPEED);
@@ -72,7 +72,7 @@ function GreenButton({ position = [-2, 0.05, 0], hovered = false, lit = true, ..
       </mesh>
       {IS_TOUCH_SCREEN && (
         <mesh name="button-touch-target" visible={false}>
-          <cylinderGeometry args={[TOUCH_TARGET_RADIUS, TOUCH_TARGET_RADIUS, 0.3, 16]} />
+          <cylinderGeometry args={[TOUCH.buttonTargetRadius, TOUCH.buttonTargetRadius, 0.3, 16]} />
           <meshBasicMaterial />
         </mesh>
       )}

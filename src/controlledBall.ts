@@ -1,7 +1,7 @@
 import type { RapierRigidBody } from "@react-three/rapier";
 import type { Object3D } from "three";
 
-// The ball the keyboard steers: whichever was hovered last. Balls register themselves on hover.
+// The ball the keyboard steers: whichever was clicked or touched last. Balls register themselves on press.
 // The body is what gets pushed; the object is what's drawn (it moves smoothly between physics steps).
 let controlled: { body: RapierRigidBody; object: Object3D | null } | null = null;
 
