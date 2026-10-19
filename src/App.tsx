@@ -1,8 +1,8 @@
 import { Canvas } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
+import { Environment } from "@react-three/drei";
 
-
-import { Stats, OrbitControls, Preload } from "@react-three/drei";
+import { Stats, OrbitControls, Preload, Sphere } from "@react-three/drei";
 import { Leva, useControls } from "leva";
 import * as THREE from "three";
 import { Suspense, useEffect, useMemo, useState, useRef, type ComponentRef } from "react";
@@ -118,7 +118,7 @@ export default function App() {
   };
   // Drops a ball straight into the catapult's low cup, just above where it comes to rest
   const loadBall = () => addBall({ position: [CUP_X_AT_REST, CUP_Y_AT_REST + 0.1, CUP_Z_AT_REST], friction: BALL.loadedFriction });
-  
+
   const [attractorOn, setAttractorOn] = useState(true);
   const [catapultTurning, setCatapultTurning] = useState(false);
   const attractorTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -131,7 +131,7 @@ export default function App() {
 
   return (
     <UtilWrapper>
-      
+
       <div className="buttonContainer">
         <button onClick={loadBall}>Load</button>
         <button onClick={() => addBall()}>Random</button>
@@ -161,12 +161,18 @@ export default function App() {
           }}
         />
       </div>
-      <Canvas shadows="percentage" camera={{ position: controls.cameraPosition, fov: controls.cameraFov, near: 0.1 }}>
+      <Canvas shadows="percentage" camera={{ far: 130, near: 0.1, position: controls.cameraPosition, fov: controls.cameraFov }}>
         {/* Widens the view on portrait phone screens so the arena isn't cropped at the sides */}
         <PortraitFov fov={controls.cameraFov} minAspect={0.8} />
         <directionalLight castShadow position={[10, 30, 10]} />
         <hemisphereLight intensity={1} color="white" groundColor="black" />
-
+        <Environment
+          files="./hdr/evening_road_01_2k.hdr"
+          ground={{ height: 5, radius: 100, scale: 50 }}
+          preset="sunset"
+          environmentIntensity={0.2} // Scales the HDRI lighting/reflections (default is 1)
+          backgroundIntensity={1}    // Separately controls the background image intensity
+        />
         {/* Everything interactive and physical lives inside the Physics context */}
         <Physics gravity={[0, -9.81, 0]} debug={controls.debugState} paused={isPaused}>
           {/* W/A/S/D (or arrows) and space steer the last clicked ball, marked with an aura */}
