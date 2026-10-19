@@ -21,7 +21,7 @@ import { Catapult } from "./components/Catapult.tsx";
 import { FLOOR_Y, lowCupWorld } from "./components/catapultLayout.ts";
 import { generateSeededKey } from "./components/playfulRandomId.ts";
 import { restored, saveSettings } from "./persistedSettings.ts";
-import { ATTRACTOR, BALL, CATAPULT, CHUTE, SETTINGS_DEFAULTS } from "./config.ts";
+import { ATTRACTOR, BALL, CATAPULT, CHUTE, SCENE, SETTINGS_DEFAULTS } from "./config.ts";
 
 const deg = THREE.MathUtils.degToRad;
 
@@ -261,7 +261,7 @@ export default function App() {
             </group>
           </group>
 
-          <group scale={[0.5, 0.2, 0.5]}>
+          <group scale={SCENE.floorScale}>
             <Floor />
             <Walls />
           </group>
