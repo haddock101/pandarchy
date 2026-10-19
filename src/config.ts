@@ -11,6 +11,10 @@ type Vec3 = [number, number, number];
 export const SCENE = {
   /** Top of the checkered floor in world space (the floor boxes in Wall.tsx, under App's 0.2 vertical scale). */
   floorY: -0.08,
+  /** App's scale for the floors and walls (Floor.tsx, Wall.tsx). */
+  floorScale: [0.5, 0.2, 0.5] as Vec3,
+  /** The left floor section rises towards the left wall by this much; the right section stays flat. */
+  leftSectionSlope: deg(6.75),
 };
 
 /** Defaults for the Leva settings panel; once changed there, the browser remembers the new values. */
