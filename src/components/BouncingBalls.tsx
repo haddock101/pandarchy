@@ -12,10 +12,9 @@ import {
   releaseCharge,
   cancelCharge,
 } from "./impulse.ts";
-import { IS_TOUCH_SCREEN } from "../touch.ts";
 import { getControlledBall, setControlledBall } from "../controlledBall.ts";
 import { resetChuteDamping } from "./chuteDamping.ts";
-import { BALL, PUSH, TOUCH } from "../config.ts";
+import { BALL, PUSH } from "../config.ts";
 import { clearHoverTarget, setHoverTarget, num, vec, type HoverTarget } from "../hoverInfo.ts";
 
 const SPHERE_SEGMENTS = 64; // Number of segments for the sphere geometry
@@ -34,8 +33,6 @@ const ZERO = { x: 0, y: 0, z: 0 };
 const IDENTITY = { x: 0, y: 0, z: 0, w: 1 };
 // Hidden balls must not catch the pointer or the marker's ray.
 const noRaycast = () => {};
-// Touch screens get an invisible, bigger sphere around each ball to grab it by (TOUCH.ballTargetScale)
-const TOUCH_TARGET_NAME = "ball-touch-target";
 
 /** One use of a pooled ball. A new `seq` re-spawns the ball even if it's already in play. */
 export type BallSpawn = {
@@ -121,13 +118,6 @@ export function BouncingBall({
     body.wakeUp();
   }, [spawn]);
 
-  // The point on the ball's surface towards `point`, and the surface normal there
-  const surfaceTowards = (point: THREE.Vector3) => {
-    const { x, y, z } = ballRef.current.translation();
-    const normal = point.clone().sub(new THREE.Vector3(x, y, z)).normalize();
-    return { point: new THREE.Vector3(x, y, z).addScaledVector(normal, radius), normal };
-  };
-
   // Live properties for the debug panel
   const hoverTarget = (): HoverTarget => ({
     id: name,
@@ -168,15 +158,13 @@ export function BouncingBall({
       ccd={ccd}
     >
       <BallCollider args={[radius]} restitution={restitution} friction={friction} density={density} />
-      {/* Pointer handling sits on a group, so presses on the ball and on its touch target behave alike */}
       <group
         ref={ballObjectRef}
         onPointerDown={(e) => {
           toggleControls(false)
           // Clicking or touching a ball selects it: the keyboard (W/A/S/D or arrows, space) steers it
           setControlledBall(ballRef.current, ballObjectRef.current)
-          // A press on the enlarged touch target is moved onto the ball's surface, towards the press
-          startCharge(e, e.object.name === TOUCH_TARGET_NAME ? surfaceTowards(e.point) : undefined)
+          startCharge(e)
         }}
         onPointerMove={updateCharge}
         onPointerUp={() => {
@@ -214,14 +202,6 @@ export function BouncingBall({
           <sphereGeometry args={[radius, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} />
           <meshStandardMaterial color={color} {...textures} />
         </mesh>
-        {/* Balls are small on a phone, so touch screens get a bigger, invisible sphere to grab them by.
-            Hidden meshes still catch pointer events; it stays off the marker's layer. */}
-        {IS_TOUCH_SCREEN && (
-          <mesh name={TOUCH_TARGET_NAME} visible={false} raycast={active ? THREE.Mesh.prototype.raycast : noRaycast}>
-            <sphereGeometry args={[radius * TOUCH.ballTargetScale, 16, 12]} />
-            <meshBasicMaterial />
-          </mesh>
-        )}
       </group>
     </RigidBody>
   );

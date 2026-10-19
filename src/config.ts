@@ -58,8 +58,6 @@ export const TOUCH = {
   minPullPx: 150,
   /** …but is never stretched more than this. */
   maxStretch: 4,
-  /** Invisible grab area around each ball, in ball radii. */
-  ballTargetScale: 2.2,
   /** Invisible grab area around each catapult button, in world units. */
   buttonTargetRadius: 0.6,
 };
