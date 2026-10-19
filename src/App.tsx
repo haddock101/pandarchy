@@ -1,6 +1,5 @@
 import { Canvas } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
-import { Attractor } from "@react-three/rapier-addons";
 import { Stats, OrbitControls, Preload } from "@react-three/drei";
 import { Leva, useControls } from "leva";
 import * as THREE from "three";
@@ -10,32 +9,48 @@ import InvisibleContainer from "./components/InvisibleContainer.tsx";
 import { BouncingBall, ImpulseMarker, type BallSpawn } from "./components/BouncingBalls.tsx";
 import { AttractorField } from "./components/AttractorField.tsx";
 import { DebugPanel } from "./components/DebugPanel.tsx";
-import { Corner, Funnel, Halfpipe, Pipe90, Quarterpipe } from "./components/PropsNStuff.tsx";
+import { PortraitFov } from "./components/PortraitFov.tsx";
+import { KeyboardControls } from "./components/KeyboardControls.tsx";
+import { SelectedBallAura } from "./components/SelectedBallAura.tsx";
+import { Funnel, Halfpipe, Pipe90, /* Corner, Quarterpipe */ } from "./components/PropsNStuff.tsx";
 import { Walls } from "./components/Wall.tsx";
 import Floor from "./components/Floor.tsx";
 import { Catapult } from "./components/Catapult.tsx";
-import { FLOOR_Y, RIGHT_CUP_AT_REST } from "./components/catapultLayout.ts";
+import { FLOOR_Y, lowCupWorld } from "./components/catapultLayout.ts";
 import { generateSeededKey } from "./components/playfulRandomId.ts";
 import { restored, saveSettings } from "./persistedSettings.ts";
 
 const deg = THREE.MathUtils.degToRad;
 
-// The catapult rests with its right cup on the floor, ready to launch. It sits a little left of the
-// centre: at x=0 the ball clips the end of pipe903 on the way up and gets thrown straight up instead of
-// into the funnel, and from about x=-0.6 the raised left end runs into pipe904 below the funnel.
-const CATAPULT_POSITION: [number, number, number] = [-0.4, 0, 0];
-const CUP_X_AT_REST = CATAPULT_POSITION[0] + RIGHT_CUP_AT_REST[0];
-const CUP_Y_AT_REST = CATAPULT_POSITION[1] + RIGHT_CUP_AT_REST[1];
-// Pulls balls into that cup, centred where a ball comes to rest in it (0.2 below the bowl's sphere centre).
-const ATTRACTOR_POSITION: [number, number, number] = [CUP_X_AT_REST, CUP_Y_AT_REST + 0.2, 0];
+// The catapult is placed by the bottom of its base cone, standing on the floor, and turned by one yaw
+// around it. It rests with its low cup on the floor, ready to launch; the raised cup sits under the end
+// of halfpipe2, so a ball coming down the chute lands in it and tips the arm.
+const CATAPULT_POSITION: [number, number, number] = [-0.025, FLOOR_Y, 1.525];
+const CATAPULT_YAW = deg(-35);
+const [CUP_X_AT_REST, CUP_Y_AT_REST, CUP_Z_AT_REST] = lowCupWorld(CATAPULT_POSITION, CATAPULT_YAW);
+// The Attractor lives in the catapult, in whichever cup holds the ball; at rest that's the low cup,
+// just above the bowl's sphere centre. Its position here only sizes the floor rings.
+const ATTRACTOR_POSITION: [number, number, number] = [CUP_X_AT_REST, CUP_Y_AT_REST + 0.2, CUP_Z_AT_REST];
 const ATTRACTOR_RANGE = 2;
 // Applied as an impulse every physics step, so even this pulls a ball at up to ~3× gravity.
 const ATTRACTOR_STRENGTH = 0.35;
 // After a launch the pull is switched off for a moment, or it drags the ball straight back into the cup.
 const ATTRACTOR_LAUNCH_PAUSE_MS = 1500;
 // The field visual lies on the floor under the cup, as wide as the attraction reaches at floor level.
-const FIELD_POSITION: [number, number, number] = [CUP_X_AT_REST, FLOOR_Y + 0.015, 0];
+const FIELD_POSITION: [number, number, number] = [CUP_X_AT_REST, FLOOR_Y + 0.015, CUP_Z_AT_REST];
 const FIELD_RADIUS = Math.sqrt(ATTRACTOR_RANGE ** 2 - (ATTRACTOR_POSITION[1] - FLOOR_Y) ** 2);
+
+// Slope of the chutes, in radians. Each part tilts about the seam where it joins the next, so the
+// pipe ends stay lined up at any slope; the funnel is counter-rotated to stay exactly vertical.
+const CHUTE_SLOPE = 0.05;
+// Seams in the chutes group's own coordinates: where pipe904 meets pipe901 (the pipe runs along z
+// there), and where halfpipe1 meets pipe902 (running along x). Rotating about an axis the pipe
+// runs along moves neither its end nor its direction, so these seams stay exact.
+const FUNNEL_SEAM: [number, number, number] = [-4.5, 0.922, 3];
+const OUTLET_SEAM: [number, number, number] = [3.5, 0.922, 0];
+// Where pipe902 meets pipe903; the tube runs along z there.
+const BEND_SEAM: [number, number, number] = [5.5, 0.922, 2];
+const negate = ([x, y, z]: [number, number, number]): [number, number, number] => [-x, -y, -z];
 
 const randomColor = () => `hsl(${Math.round(Math.random() * 360)}, 70%, 60%)`;
 
@@ -43,7 +58,7 @@ function createSpawn(seq: number, overrides: Partial<BallSpawn> = {}): BallSpawn
   return {
     seq,
     // Drop in from above, slightly offset so stacked balls don't spawn inside each other
-    position: [(Math.random() - 0.5) * 2, 8, (Math.random() - 0.5) * 2],
+    position: [(Math.random() - 4) * 0.5, 8.5, (Math.random() - 4) * 0.5],
     colors: [randomColor(), randomColor()],
     ...overrides,
   };
@@ -71,9 +86,9 @@ export default function App() {
     debugState: restored("debugState", false),
     showStats: restored("showStats", false),
     hoverInfo: restored("hoverInfo", true),
-    cameraFov: { value: restored("cameraFov", 49  ), min: 10, max: 100, step: 1 },
-    cameraPosition: { value: restored("cameraPosition", [14.5, 13.5, 24.5] as [number, number, number]) }, 
-    cameraLookAt: { value: restored("cameraLookAt",  [0, 0, 0] as [number, number, number]) },
+    cameraFov: { value: restored("cameraFov", 49), min: 10, max: 100, step: 1 },
+    cameraPosition: { value: restored("cameraPosition", [14.5, 13.5, 24.5] as [number, number, number]) },
+    cameraLookAt: { value: restored("cameraLookAt", [0, 0, 0] as [number, number, number]) },
   });
   const serializedControls = JSON.stringify(controls);
   useEffect(() => saveSettings(JSON.parse(serializedControls)), [serializedControls]);
@@ -102,13 +117,14 @@ export default function App() {
     const spawn = createSpawn(++seqRef.current, overrides);
     setSpawns((prev) => placeSpawn(prev, maxBalls, spawn));
   };
-  // Drops a ball straight into the catapult's right cup, just above where it comes to rest
-  const loadBall = () => addBall({ position: [CUP_X_AT_REST, CUP_Y_AT_REST + 0.1, 0], friction: 0.25 });
-
+  // Drops a ball straight into the catapult's low cup, just above where it comes to rest
+  const loadBall = () => addBall({ position: [CUP_X_AT_REST, CUP_Y_AT_REST + 0.1, CUP_Z_AT_REST], friction: 0.55 });
+  
   const [attractorOn, setAttractorOn] = useState(true);
+  const [catapultTurning, setCatapultTurning] = useState(false);
   const attractorTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const onLaunch = () => {
-    setAttractorOn(false); 
+    setAttractorOn(false);
     clearTimeout(attractorTimer.current);
     attractorTimer.current = setTimeout(() => setAttractorOn(true), ATTRACTOR_LAUNCH_PAUSE_MS);
   };
@@ -116,31 +132,47 @@ export default function App() {
 
   return (
     <UtilWrapper>
+      
       <div className="buttonContainer">
         <button onClick={loadBall}>Load</button>
         <button onClick={() => addBall()}>Random</button>
         <button onClick={() => setSpawns([])}>Reset</button>
         <button onClick={() => togglePausePhysics()}>{isPaused ? "Resume" : "Pause"}</button>
       </div>
-      <Leva
-        fill
-        flat
-        //oneLineLabels
-        collapsed
-        titleBar={{
-          title: "",
-          drag: true,
-          filter: true,
-          position: { x: 0, y: 0 },
-        }}
-      />
+      <div style={{
+        display: 'block',
+        position: 'absolute',
+        width: '100dvw',
+        zIndex: 11,
+        maxHeight: '100dvh',
+        overflowY: 'scroll',
+      }}>
+        <Leva
 
+
+          fill
+          flat
+          oneLineLabels
+          collapsed
+          titleBar={{
+            title: "",
+            drag: false,
+            filter: true,
+            position: { x: 0, y: 0 },
+          }}
+        />
+      </div>
       <Canvas shadows="percentage" camera={{ position: controls.cameraPosition, fov: controls.cameraFov, near: 0.1 }}>
+        {/* Widens the view on portrait phone screens so the arena isn't cropped at the sides */}
+        <PortraitFov fov={controls.cameraFov} minAspect={0.8} />
         <directionalLight castShadow position={[10, 30, 10]} />
         <hemisphereLight intensity={1} color="white" groundColor="black" />
 
         {/* Everything interactive and physical lives inside the Physics context */}
         <Physics gravity={[0, -9.81, 0]} debug={controls.debugState} paused={isPaused}>
+          {/* W/A/S/D and space steer the last hovered ball, marked with an aura */}
+          <KeyboardControls />
+          <SelectedBallAura />
           {/* Suspense keeps the rest of the scene on screen while the ball textures load */}
           <Suspense fallback={null}>
             {slotNames.map((name, i) => (
@@ -154,7 +186,7 @@ export default function App() {
                 density={1}
                 ccd
                 restitution={0.1}
-                friction={spawns[i]?.friction ?? 0}
+                friction={spawns[i]?.friction ?? 0.3}
                 canSleep={false}
                 togglePhysics={togglePausePhysics}
                 toggleControls={toggleControls}
@@ -164,23 +196,21 @@ export default function App() {
             <Preload all />
           </Suspense>
 
-          {/* Gently pulls balls towards the catapult's right cup */}
-          <Attractor
-            position={ATTRACTOR_POSITION}
-            strength={attractorOn ? ATTRACTOR_STRENGTH : 0}
-            range={ATTRACTOR_RANGE}
-            type="linear"
-          />
-          <AttractorField position={FIELD_POSITION} radius={FIELD_RADIUS} active={attractorOn} />
-
+          {/* The rings mark the low cup, where the Attractor holds a ball; they fade while it moves */}
+          <AttractorField position={FIELD_POSITION} radius={FIELD_RADIUS} active={attractorOn && !catapultTurning} />
           <Catapult
             position={CATAPULT_POSITION}
+            yaw={CATAPULT_YAW}
             impulseMultiplier={controls.impulseMultiplier}
             toggleControls={toggleControls}
             onLaunch={onLaunch}
+            attractorStrength={attractorOn ? ATTRACTOR_STRENGTH : 0}
+            attractorRange={ATTRACTOR_RANGE}
+            onTurn={setCatapultTurning}
           />
 
           <group name="pipeGroup">
+            {/* 
             <Corner id="corner1" position={[4.25, 2 - 0.075, 4.25]} radius={2} rotation={[deg(-180), deg(180), 0]} />
             <Corner id="corner2" position={[4.25, 2 - 0.075, -4.25]} radius={2} rotation={[deg(180), deg(90), 0]} />
             <Corner id="corner3" position={[-4.25, 2 - 0.075, -4.25]} radius={2} rotation={[deg(0), deg(-180), deg(-180)]} />
@@ -188,25 +218,40 @@ export default function App() {
             <Quarterpipe id="quarterpipe1" position={[4.25, 2 - 0.075, 0]} radius={2} length={8.5} rotation={[0, deg(90), deg(-90)]} />
             <Quarterpipe id="quarterpipe2" position={[0, 2 - 0.075, -4.25]} radius={2} length={8.5} rotation={[0, deg(180), deg(-90)]} />
             <Quarterpipe id="quarterpipe3" position={[0, 2 - 0.075, 4.25]} radius={2} length={8.5} rotation={[0, deg(0), deg(-90)]} />
-            <Quarterpipe id="quarterpipe4" position={[-4.25, 2 - 0.075, 0]} radius={2} length={8.5} rotation={[0, deg(-90), deg(-90)]} />
+            <Quarterpipe id="quarterpipe4" position={[-4.25, 2 - 0.075, 0]} radius={2} length={8.5} rotation={[0, deg(-90), deg(-90)]} /> */}
 
-            {/* Funnel → pipes → halfpipe, tilted slightly so balls roll along */}
-            <group name="chutes" position={[0, 2, -4]} rotation={[0, 0, -0.0325]}>
-              <group rotation={[0, 0, 0.035]} position={[0.028, 0.155, 0]}>
-                <Funnel id="funnel1" radius={3.5} position={[-4.5, 2.422, 4]} />
-                <Pipe90
-                  id="pipe904"
-                  radius={1}
-                  thetaLength={Math.PI * 2}
-                  rotation={[0, deg(90), deg(180)]}
-                  position={[-4.5, 1.922, 3]}
-                />
+            {/* Funnel → pipes → halfpipe, tilted by CHUTE_SLOPE so balls roll along */}
+            <group name="chutes" position={[0, 3, -4]} rotation={[0, 0, -CHUTE_SLOPE]}>
+              {/* Counter-rotated about its seam with pipe901, so the funnel stays exactly vertical */}
+              <group position={FUNNEL_SEAM} rotation={[0, 0, CHUTE_SLOPE]}>
+                <group position={negate(FUNNEL_SEAM)}>
+                  <Funnel id="funnel1" radius={3.5} position={[-4.5, 2.422, 4]} />
+                  <Pipe90
+                    id="pipe904"
+                    radius={1}
+                    thetaLength={Math.PI * 2}
+                    rotation={[0, deg(90), deg(180)]}
+                    position={[-4.5, 1.922, 3]}
+                  />
+                </group>
               </group>
               <Pipe90 id="pipe901" radius={3} rotation={[deg(270), 0, deg(90)]} position={[-1.5, 0.922, 3]} />
               <Halfpipe id="halfpipe1" radius={1} length={5} position={[1, 0.922, 0]} rotation={[0, 0, deg(270)]} />
-              <group rotation={[0.0325, 0, 0]} position={[0, 0, -0.0325]}>
-                <Pipe90 id="pipe902" radius={2} rotation={[deg(270), 0, 0]} position={[3.5, 0.922, 2]} />
-                <Pipe90 id="pipe903" radius={2} rotation={[deg(270), 0, deg(270)]} position={[3.5, 0.922, 2]} />
+              {/* pipe902 turns the run from +x to +z; tilting about its seam with the halfpipe (where the
+                  tube runs along x) makes its +z end slope downhill too */}
+              <group position={OUTLET_SEAM} rotation={[CHUTE_SLOPE, 0, 0]}>
+                <group position={negate(OUTLET_SEAM)}>
+                  <Pipe90 id="pipe902" radius={2} rotation={[deg(270), 0, 0]} position={[3.5, 0.922, 2]} />
+                  {/* pipe903 turns back towards -x, which the chutes' tilt alone would make uphill. Turning it
+                      (and halfpipe2) about its seam with pipe902, where the tube runs along z, by twice the
+                      slope makes the -x run slope downhill as well */}
+                  <group position={BEND_SEAM} rotation={[0, 0, 2 * CHUTE_SLOPE]}>
+                    <group position={negate(BEND_SEAM)}>
+                      <Pipe90 id="pipe903" radius={2} rotation={[deg(270), 0, deg(270)]} position={[3.5, 0.922, 2]} />
+                      <Halfpipe id="halfpipe2" radius={1} length={5} position={[1, 0.922, 4]} rotation={[0, 0, deg(270)]} />
+                    </group>
+                  </group>
+                </group>
               </group>
             </group>
           </group>

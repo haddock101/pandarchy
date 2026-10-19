@@ -7,11 +7,15 @@ import {
   IMPULSE_LAYER,
   aim,
   impulseDirection,
+  MAX_PULL,
   startCharge,
   updateCharge,
   releaseCharge,
   cancelCharge,
 } from "./impulse.ts";
+import { IS_TOUCH_SCREEN } from "../touch.ts";
+import { getControlledBall, setControlledBall } from "../controlledBall.ts";
+import { BALL_LINEAR_DAMPING, resetChuteDamping } from "./chuteDamping.ts";
 import { clearHoverTarget, setHoverTarget, num, vec, type HoverTarget } from "../hoverInfo.ts";
 
 const SPHERE_SEGMENTS = 64; // Number of segments for the sphere geometry
@@ -30,6 +34,10 @@ const ZERO = { x: 0, y: 0, z: 0 };
 const IDENTITY = { x: 0, y: 0, z: 0, w: 1 };
 // Hidden balls must not catch the pointer or the marker's ray.
 const noRaycast = () => {};
+// Touch screens get an invisible, bigger sphere around each ball to grab it by.
+// On a phone a ball can be only ~10px in radius; 2.2× makes a ~44px-wide target, the usual minimum
+const TOUCH_TARGET_SCALE = 2.2;
+const TOUCH_TARGET_NAME = "ball-touch-target";
 
 /** One use of a pooled ball. A new `seq` re-spawns the ball even if it's already in play. */
 export type BallSpawn = {
@@ -42,8 +50,6 @@ export type BallSpawn = {
 // Gap between the marker's tip and the hovered surface.
 const MARKER_GAP = 0.005;
 const MARKER_SIZE = 0.25;
-// How far the marker is pulled back from the surface at full charge.
-const MAX_PULL = 3.5;
 const MARKER_COLOR_EMPTY = new THREE.Color("white");
 const MARKER_COLOR_FULL = new THREE.Color("red");
 
@@ -84,6 +90,8 @@ export function BouncingBall({
   toggleControls,
 }: BouncingBallProps) {
   const ballRef = useRef<RapierRigidBody>(null!);
+  // The drawn ball (moves smoothly between physics steps), for the selection aura to follow
+  const ballObjectRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   useCursor(hovered);
   const textures = useTexture(BALL_TEXTURES);
@@ -104,14 +112,23 @@ export function BouncingBall({
     body.setRotation(IDENTITY, false);
     if (!spawn) {
       body.setTranslation(PARKED, false);
+      resetChuteDamping(body);
       body.setEnabled(false);
       return;
     }
     const [x, y, z] = spawn.position;
     body.setTranslation({ x, y, z }, false);
+    resetChuteDamping(body);
     body.setEnabled(true);
     body.wakeUp();
   }, [spawn]);
+
+  // The point on the ball's surface towards `point`, and the surface normal there
+  const surfaceTowards = (point: THREE.Vector3) => {
+    const { x, y, z } = ballRef.current.translation();
+    const normal = point.clone().sub(new THREE.Vector3(x, y, z)).normalize();
+    return { point: new THREE.Vector3(x, y, z).addScaledVector(normal, radius), normal };
+  };
 
   // Live properties for the debug panel
   const hoverTarget = (): HoverTarget => ({
@@ -135,6 +152,7 @@ export function BouncingBall({
         ["restitution", num(restitution)],
         ["ccd", body.isCcdEnabled() ? "on" : "off"],
         ["spawn #", String(spawn?.seq ?? "–")],
+        ["keyboard", getControlledBall() === body ? "W A S D, space" : "–"],
       ];
     },
   });
@@ -147,19 +165,18 @@ export function BouncingBall({
       // and a parked ball's mesh is hidden, which left pooled balls with no collider and no mass.
       colliders={false}
       position={[PARKED.x, PARKED.y, PARKED.z]}
-      linearDamping={0.5}
+      linearDamping={BALL_LINEAR_DAMPING}
       canSleep={canSleep}
       ccd={ccd}
     >
       <BallCollider args={[radius]} restitution={restitution} friction={friction} density={density} />
-      <mesh
-        castShadow
-        visible={active}
-        raycast={active ? THREE.Mesh.prototype.raycast : noRaycast}
-        onUpdate={(mesh) => mesh.layers.enable(IMPULSE_LAYER)}
+      {/* Pointer handling sits on a group, so presses on the ball and on its touch target behave alike */}
+      <group
+        ref={ballObjectRef}
         onPointerDown={(e) => {
           toggleControls(false)
-          startCharge(e)
+          // A press on the enlarged touch target is moved onto the ball's surface, towards the press
+          startCharge(e, e.object.name === TOUCH_TARGET_NAME ? surfaceTowards(e.point) : undefined)
         }}
         onPointerMove={updateCharge}
         onPointerUp={() => {
@@ -179,6 +196,8 @@ export function BouncingBall({
           e.stopPropagation()
           setHovered(true)
           setHoverTarget(hoverTarget())
+          // The keyboard (W/A/S/D, space) steers the last hovered ball
+          setControlledBall(ballRef.current, ballObjectRef.current)
           togglePhysics(true)
           toggleControls(true)
         }}
@@ -188,9 +207,24 @@ export function BouncingBall({
           togglePhysics(false)
         }}
       >
-        <sphereGeometry args={[radius, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} />
-        <meshStandardMaterial color={color} {...textures} />
-      </mesh>
+        <mesh
+          castShadow
+          visible={active}
+          raycast={active ? THREE.Mesh.prototype.raycast : noRaycast}
+          onUpdate={(mesh) => mesh.layers.enable(IMPULSE_LAYER)}
+        >
+          <sphereGeometry args={[radius, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} />
+          <meshStandardMaterial color={color} {...textures} />
+        </mesh>
+        {/* Balls are small on a phone, so touch screens get a bigger, invisible sphere to grab them by.
+            Hidden meshes still catch pointer events; it stays off the marker's layer. */}
+        {IS_TOUCH_SCREEN && (
+          <mesh name={TOUCH_TARGET_NAME} visible={false} raycast={active ? THREE.Mesh.prototype.raycast : noRaycast}>
+            <sphereGeometry args={[radius * TOUCH_TARGET_SCALE, 16, 12]} />
+            <meshBasicMaterial />
+          </mesh>
+        )}
+      </group>
     </RigidBody>
   );
 }
@@ -250,6 +284,8 @@ export function ImpulseMarker() {
       anchor.position.copy(marker.position);
       label.textContent = `${Math.round(charge * 100)}%`;
       label.style.color = material.color.getStyle();
+      // With a finger on the screen the marker is under it, so the readout moves above the finger
+      label.classList.toggle("chargeLabel--touch", aim.pointerType === "touch");
     }
   });
 
@@ -279,8 +315,8 @@ export function ImpulseMarker() {
       </mesh>
       {/* Unit-height cylinder lying along +Z (towards the surface); scaled to the pull distance each frame */}
       <mesh ref={stemRef} rotation-x={Math.PI / 2} visible={false}>
-        <cylinderGeometry args={[0.015, 0.015, 1, 8]} />
-        <meshStandardMaterial color="white" emissive="white" emissiveIntensity={1} />
+        <cylinderGeometry args={[0.005, 0.075, 1, 5]} />
+        <meshStandardMaterial color="white" emissive="skyblue" opacity={0.1} roughness={0.01} emissiveIntensity={1} />
       </mesh>
     </group>
     </>

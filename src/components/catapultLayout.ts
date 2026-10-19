@@ -36,3 +36,19 @@ export function cupCentre(angle: number, cupX = CUP_X): [number, number, number]
 
 /** The right cup's sphere centre at rest, on the floor. */
 export const RIGHT_CUP_AT_REST = cupCentre(REST_ANGLE);
+
+/** The bottom of the base cone, relative to the catapult's origin. Placement uses this point. */
+export const CONE_BOTTOM_Y = BASE_Y - BASE_HEIGHT / 2;
+
+/**
+ * The low cup's sphere centre in world space, for a catapult placed with its cone bottom at
+ * `position` and turned by `yaw` (radians, around the vertical axis through that point).
+ */
+export function lowCupWorld(position: [number, number, number], yaw: number): [number, number, number] {
+  const [x, y, z] = RIGHT_CUP_AT_REST;
+  const dy = y - CONE_BOTTOM_Y;
+  const cos = Math.cos(yaw);
+  const sin = Math.sin(yaw);
+  // Rotation around y: x' = x cos + z sin, z' = -x sin + z cos
+  return [position[0] + x * cos + z * sin, position[1] + dy, position[2] - x * sin + z * cos];
+}

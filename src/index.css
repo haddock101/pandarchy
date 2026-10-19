@@ -4,14 +4,34 @@
   background: #111;
 }
 
+html,
+body {
+  /* No pull-to-refresh or rubber-band scrolling when a drag on the scene goes past the edge */
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   background: #111;
+  /* No text selection, long-press callout or grey tap flash when touching the scene */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+canvas {
+  /* The scene handles every touch itself (drags, orbit, pinch zoom); don't let the page scroll or zoom */
+  touch-action: none;
 }
 
 #root {
   width: 100vw;
   min-height: 100svh;
+}
+
+body {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .statsContainer {
@@ -26,16 +46,17 @@ body {
 .buttonContainer {
   position: absolute;
   z-index: 10;
-  top: 8px;
-  right: 40px;
-  left: 16px;
+  top: 58px;
+  left: 20px;
   display: flex;
+  flex-direction: column-reverse;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   /* Let drags on the empty part of the row through to the canvas */
   pointer-events: none;
 }
+
 .buttonContainer button {
   pointer-events: auto;
   border: none;
@@ -48,12 +69,44 @@ body {
   color: white;
   cursor: pointer;
 }
+
 .buttonContainer button:hover {
   filter: brightness(1.3);
 }
+
 .buttonContainer button:focus-visible {
   outline: 2px solid white;
   outline-offset: 2px;
+}
+
+/* Finger-sized buttons on touch screens; manipulation skips the double-tap-to-zoom delay */
+@media (pointer: coarse) {
+  .buttonContainer {
+    top: auto;
+    top: calc(100dvh - 50px);
+    right: auto;
+    left: 10px;
+    width: calc(100vw - 20px);
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 8px;
+    pointer-events: none;
+    pointer-events: none;
+  }
+
+  .buttonContainer button {
+    min-height: 40px;
+    min-width: 64px;
+    width: 100%;
+    font-size: 11px;
+    touch-action: manipulation;
+  }
+
+  .buttonContainer button:hover {
+    filter: none;
+  }
 }
 
 /* Hover info: properties of the object under the pointer, below the buttons */
@@ -72,6 +125,7 @@ body {
   /* Purely informational: never block the scene underneath */
   pointer-events: none;
 }
+
 .debugPanel-title {
   margin-bottom: 4px;
   font-weight: 700;
@@ -80,30 +134,53 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .debugPanel dl {
   margin: 0;
 }
+
 .debugPanel-row {
   display: flex;
   justify-content: space-between;
   gap: 8px;
 }
+
 .debugPanel dt {
   color: #9aa0a6;
 }
+
 .debugPanel dd {
   margin: 0;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
+/* Narrow screens: smaller, and below the (taller, possibly wrapped) touch buttons */
+@media (max-width: 600px) {
+  .debugPanel {
+    top: 60px;
+    width: 200px;
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+}
+
 /* Charge readout next to the impulse marker while dragging */
 .chargeLabel {
-  transform: translate(26px, -50%);
-  font: 700 14px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  position: absolute;
+  top: -4dvh;
+  right: 6dvw;
+  transform: translate(36px, -50%);
+  font: 700 28px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   text-shadow: 0 0 3px rgb(0 0 0 / 0.9), 0 0 1px rgb(0 0 0);
   pointer-events: none;
   user-select: none;
+}
+
+/* With a finger on the screen the marker is under it, so the readout sits well above the finger */
+.chargeLabel--touch {
+  transform: translate(-10%, 90px);
+  font-size: 40px;
 }

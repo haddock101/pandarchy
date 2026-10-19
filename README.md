@@ -16,9 +16,12 @@ bun run buildpush  # build and rsync dist/ to the web server
 
 ## Playing
 
-- **Press, drag and release** on a ball or the catapult arm to push it. The
+- **Press, drag and release** on a ball, or on one of the glowing green buttons on
+  the catapult arm, to push it. The
   further you drag, the harder the push; the marker pulls back and turns red as
   it charges. Works with touch too.
+- **W/A/S/D** push the last hovered ball across the floor (relative to the
+  camera) and **space** makes it jump.
 - **Load** drops a ball into the catapult's right cup, **Random** drops
   one from above, **Reset** clears all balls and **Pause** freezes physics.
 - The settings panel (top, collapsed) toggles the Rapier collider view

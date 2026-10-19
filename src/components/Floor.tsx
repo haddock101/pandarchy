@@ -10,8 +10,7 @@ function Floor() {
           <meshStandardMaterial color="chartreuse" />
         </mesh>
       </RigidBody>
-
-      <RigidBody type="fixed" friction={0} colliders="cuboid">
+      <RigidBody type="fixed" friction={0.5} colliders="cuboid">
         <CheckeredBox position={[0, -0.9, 0]} />
         <mesh receiveShadow position={[0, -2, 0]}>
           <boxGeometry args={[25, 2, 25]} />

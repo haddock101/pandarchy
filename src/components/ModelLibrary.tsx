@@ -11,6 +11,10 @@ const staticBody: RigidBodyProps = {
 };
 
 const models = {
+  pushButton: {
+    url: "/glb/push-button.glb",
+    body: { type: "fixed", colliders: "hull" },
+  },
   cannonball: {
     url: "/glb/cannon-ball.glb",
     body: { type: "dynamic", colliders: "ball", restitution: 1, friction: 0.5 },

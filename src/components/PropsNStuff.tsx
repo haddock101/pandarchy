@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { useMemo } from "react";
 import { RigidBody } from "@react-three/rapier";
+import { CHUTE_GROUPS } from "../collisionGroups.ts";
+import { onChuteContactEnter, onChuteContactExit } from "./chuteDamping.ts";
 import type { Euler, Vector3 } from "@react-three/fiber";
 
 const deg = THREE.MathUtils.degToRad;
@@ -90,7 +92,13 @@ export function Halfpipe({
   position?: Vector3;
 }) {
   return (
-    <RigidBody name={id} friction={0} type="fixed" colliders="trimesh">
+    <RigidBody
+      name={id}
+      collisionGroups={CHUTE_GROUPS}
+      // Balls roll with little drag while touching any chute piece
+      onCollisionEnter={onChuteContactEnter}
+      onCollisionExit={onChuteContactExit}
+      friction={0} type="fixed" colliders="trimesh">
       <mesh
         castShadow
         receiveShadow
@@ -125,7 +133,13 @@ export function Pipe90({
   thetaLength?: number;
 }) {
   return (
-    <RigidBody name={id} friction={0} type="fixed" colliders="trimesh">
+    <RigidBody
+      name={id}
+      collisionGroups={CHUTE_GROUPS}
+      // Balls roll with little drag while touching any chute piece
+      onCollisionEnter={onChuteContactEnter}
+      onCollisionExit={onChuteContactExit}
+      friction={0.5} type="fixed" colliders="trimesh">
       <mesh castShadow receiveShadow rotation={rotation} position={position}>
         {/* radius, tube, radialSegments, tubularSegments, arc, thetaStart, thetaLength */}
         <torusGeometry
@@ -137,6 +151,8 @@ export function Pipe90({
   );
 }
 
+
+
 export function Funnel({
   id,
   radius,
@@ -147,7 +163,18 @@ export function Funnel({
   position?: Vector3;
 }) {
   return (
-    <RigidBody name={id} friction={0} type="fixed" colliders="trimesh" position={position}>
+    <RigidBody
+      name={id}
+      ccd={true}
+      collisionGroups={CHUTE_GROUPS}
+      // Balls roll with little drag while touching any chute piece
+      onCollisionEnter={onChuteContactEnter}
+      onCollisionExit={onChuteContactExit}
+      friction={0} type="fixed" colliders="trimesh" position={position}>
+      <mesh receiveShadow position={[0, 1.875, 0]} rotation={[Math.PI / 2, deg(90), deg(90)]}>
+        <cylinderGeometry args={[radius, radius*1.1, 0.25, 64, 1, true, 0]} />
+        <PinkMaterial />
+      </mesh>
       <mesh receiveShadow position={[0, 1.375, 0]} rotation={[Math.PI / 2, deg(90), deg(90)]}>
         <cylinderGeometry args={[radius/2.4, radius, 0.75, 64, 1, true, 0]} />
         <ChartreuseMaterial />
