@@ -11,8 +11,12 @@ const staticBody: RigidBodyProps = {
 };
 
 const models = {
-  pushButton: {
-    url: "/glb/push-button.glb",
+  pinballFlipper: {
+    url: "./gltf/flippers.gltf",
+    body: { type: "fixed", colliders: "hull" },
+  },
+  greenButton: {
+    url: "./glb/green-button.glb",
     body: { type: "fixed", colliders: "hull" },
   },
   cannonball: {

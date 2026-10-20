@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, type Vector3 } from "@react-three/fiber";
 import * as THREE from "three";
+import { Timer } from "three";
 
 type AttractorFieldProps = {
   /** Centre of the field, on the floor. */
@@ -81,10 +82,14 @@ export function AttractorField({
   );
   useEffect(() => () => material.dispose(), [material]);
 
-  useFrame(({ elapsed }, delta) => {
+  const timer = new Timer();
+  
+
+  useFrame((_, delta) => {
     const mesh = meshRef.current;
     if (!mesh) return;
     const { uniforms } = mesh.material;
+    const elapsed = timer.getElapsed(); 
     uniforms.uTime.value = elapsed;
     // Ease towards the target brightness, so switching on and off fades instead of popping
     uniforms.uOpacity.value = THREE.MathUtils.damp(uniforms.uOpacity.value, active ? opacity : 0, 6, delta);

@@ -1,9 +1,11 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { appIcons } from './scripts/appIcons.ts'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  // appIcons renders public/favicon.svg into the home-screen and install icons whenever it changes
+  plugins: [react(), appIcons()],
   build: {
     // The Rapier chunk embeds its physics WASM as base64 and can't get smaller.
     chunkSizeWarningLimit: 2500,

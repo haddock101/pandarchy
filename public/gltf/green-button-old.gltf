@@ -39,7 +39,7 @@
         0,
         1
       ],
-      "name": "Cylinder",
+      "name": "Button",
       "mesh": 0
     },
     {
@@ -61,7 +61,7 @@
         0,
         1
       ],
-      "name": "Cylinder",
+      "name": "Bezel",
       "mesh": 1
     }
   ],
@@ -256,7 +256,8 @@
         ],
         "metallicFactor": 0,
         "roughnessFactor": 1
-      }
+      },
+      "name": "Green plastic"
     },
     {
       "pbrMetallicRoughness": {
@@ -269,7 +270,7 @@
         "metallicFactor": 0,
         "roughnessFactor": 1
       },
-      "name": "pushButton"
+      "name": "Aluminum"
     }
   ],
   "meshes": [

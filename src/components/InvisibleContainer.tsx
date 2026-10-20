@@ -16,7 +16,7 @@ type ContainerProps = {
 const THICKNESS = 1;
 /** The floor's top surface, where the inside starts. */
 const FLOOR_TOP = -0.05;
-const DEFAULT_SIZE: Size = { x: 20, y: 15, z: 5 };
+const DEFAULT_SIZE: Size = { x: 22, y: 15, z: 5 };
 
 /** Where each slab goes for a given inner size. */
 function layout(size: Size) {
@@ -53,7 +53,7 @@ export function InvisibleContainer({ visible, opacity, debug, size = DEFAULT_SIZ
   const { floor, ceiling, walls } = layout(size);
   return (
     <>
-      <RigidBody type="fixed" position={floor.position} scale={floor.scale}>
+      <RigidBody type="fixed" friction={0.55} position={floor.position} scale={floor.scale}>
         <CuboidCollider
           args={[0.5, 0.5, 0.5]}
           onCollisionEnter={({ other }) => {
@@ -62,7 +62,7 @@ export function InvisibleContainer({ visible, opacity, debug, size = DEFAULT_SIZ
         />
         <ContainerBox visible={visible} opacity={opacity} />
       </RigidBody>
-      <RigidBody type="fixed" position={ceiling.position} scale={ceiling.scale}>
+      <RigidBody type="fixed" friction={0.55} position={ceiling.position} scale={ceiling.scale}>
         <CuboidCollider
           args={[0.5, 0.5, 0.5]}
           onCollisionEnter={({ other }) => {
@@ -72,7 +72,7 @@ export function InvisibleContainer({ visible, opacity, debug, size = DEFAULT_SIZ
         <ContainerBox visible={visible} opacity={opacity} />
       </RigidBody>
       {walls.map(({ name, position, scale }) => (
-        <RigidBody key={name+position.toString()} type="fixed" position={position} scale={scale}>
+        <RigidBody key={name+position.toString()} type="fixed" friction={0.55}  position={position} scale={scale}>
           <CuboidCollider
             args={[0.5, 0.5, 0.5]}
             sensor

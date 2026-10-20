@@ -43,7 +43,7 @@ body {
   left: unset !important;
 }
 
-.buttonContainer {
+.buttonContainer, .pinballControls {
   position: absolute;
   z-index: 10;
   top: 58px;
@@ -57,7 +57,22 @@ body {
   pointer-events: none;
 }
 
-.buttonContainer button {
+.pinballControls {
+  display:none;  
+  top: calc(100dvh - 180px);
+  left: 100px;
+}
+
+/* Held like a key: no scrolling, zooming or text selection while a finger is on them */
+.pinballControls button {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.buttonContainer button,
+.pinballControls button {
   pointer-events: auto;
   border: none;
   width: 70px;
@@ -68,6 +83,13 @@ body {
   font-weight: 900;
   color: white;
   cursor: pointer;
+}
+
+.pinballControls button {
+  padding: 20px 20px;
+  border-radius: 40px;
+  font-size: 26px;
+  background-color: rgb(182, 41, 41) !important;
 }
 
 .buttonContainer button:hover {
@@ -81,15 +103,30 @@ body {
 
 /* Finger-sized buttons on touch screens; manipulation skips the double-tap-to-zoom delay */
 @media (pointer: coarse) {
+  .pinballControls {
+    display: flex;
+    left: 10px;
+    width: calc(100vw - 20px);
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+  }
   .buttonContainer {
     top: auto;
-    top: calc(100dvh - 50px);
+    top: calc(100dvh - 100px);
     right: auto;
     left: 10px;
     width: calc(100vw - 20px);
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
+    display: grid;
+    
+    grid-template-columns: 
+      calc(100vw/4 - 10px)
+      calc(100vw/4 - 10px)
+      calc(100vw/4 - 10px)
+      calc(100vw/4 - 10px)
+
+  ;
     justify-content: space-between;
     gap: 8px;
     pointer-events: none;

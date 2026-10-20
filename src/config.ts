@@ -24,7 +24,9 @@ export const SETTINGS_DEFAULTS = {
   containerOpacity: 0.4,
   cameraFov: 49,
   cameraPosition: [14.5, 13.5, 24.5] as Vec3,
-  cameraLookAt: [0, 0, 0] as Vec3,
+  targetPosition: [14.5, 13.5, 24.5] as Vec3,
+  cameraLookAt: [0, 10, 0] as Vec3,
+  cameraZoom: 1,
 };
 
 export const BALL = {
@@ -41,7 +43,7 @@ export const BALL = {
   /** A full-charge push is impulseMultiplier / pushDivisor. */
   pushDivisor: 1,
   /** Where "Random" drops balls: a `spread`-wide square starting at x, z, at this height. */
-  randomDrop: { x: -2, z: -2, spread: 0.5, height: 8.5 },
+  randomDrop: { x: -4, z: -2, spread: 0.5, height: 8.5 },
 };
 
 /** Press-drag-release pushes, on balls and the catapult's buttons. */
@@ -64,7 +66,7 @@ export const TOUCH = {
 
 export const CATAPULT = {
   /** Where the bottom of the base cone stands; the catapult turns around this point. */
-  position: [-0.025, SCENE.floorY, 1.525] as Vec3,
+  position: [20-0.025, SCENE.floorY, 1.525] as Vec3,
   /** Turn around the vertical axis. The raised cup should end up under the end of halfpipe2. */
   yaw: deg(-35),
   /** Light enough that a ball (mass ~0.5) landing in a cup tips the arm. Pushes scale with it. */

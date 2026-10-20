@@ -1,27 +1,31 @@
 import { Canvas } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
-import { Environment } from "@react-three/drei";
-
-import { Stats, OrbitControls, Preload, Sphere } from "@react-three/drei";
+import { Stats, OrbitControls, Preload, Environment, Billboard,  /*, Sky , ContactShadows */ } from "@react-three/drei";
 import { Leva, useControls } from "leva";
 import * as THREE from "three";
 import { Suspense, useEffect, useMemo, useState, useRef, type ComponentRef } from "react";
+// import { LayerMaterial, Color as Base, Depth, Noise as LaminaNoise } from 'lamina';
+// import { Bloom, DepthOfField, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
 import UtilWrapper from "./components/UtilWrapper.tsx";
 import InvisibleContainer from "./components/InvisibleContainer.tsx";
 import { BouncingBall, ImpulseMarker, type BallSpawn } from "./components/BouncingBalls.tsx";
 import { AttractorField } from "./components/AttractorField.tsx";
 import { DebugPanel } from "./components/DebugPanel.tsx";
-import { PortraitFov } from "./components/PortraitFov.tsx";
-import { KeyboardControls } from "./components/KeyboardControls.tsx";
+// import { PortraitFov } from "./components/PortraitFov.tsx";
+import { KeyboardControls, holdControl } from "./components/KeyboardControls.tsx";
 import { SelectedBallAura } from "./components/SelectedBallAura.tsx";
 import { Funnel, Halfpipe, Pipe90, /* Corner, Quarterpipe */ } from "./components/PropsNStuff.tsx";
 import { Walls } from "./components/Wall.tsx";
+import { useFrame } from '@react-three/fiber';
+import { easing } from 'maath';
 import Floor from "./components/Floor.tsx";
 import { Catapult } from "./components/Catapult.tsx";
 import { FLOOR_Y, lowCupWorld } from "./components/catapultLayout.ts";
 import { generateSeededKey } from "./components/playfulRandomId.ts";
 import { restored, saveSettings } from "./persistedSettings.ts";
 import { ATTRACTOR, BALL, CATAPULT, CHUTE, SCENE, SETTINGS_DEFAULTS } from "./config.ts";
+ import { Model } from "./components/ModelLibrary.tsx";
+import Flippers from "./components/Flippers.tsx";
 
 const deg = THREE.MathUtils.degToRad;
 
@@ -74,21 +78,76 @@ function placeSpawn(spawns: (BallSpawn | null)[], size: number, spawn: BallSpawn
   return next;
 }
 
+/** Holds its flipper up while pressed, like the flipper's keys; works with a mouse, a finger or a pen. */
+function FlipperButton({ name, control, children }: { name: string; control: "leftFlipper" | "rightFlipper"; children: string }) {
+  const release = () => holdControl(control, false);
+  return (
+    <button
+      name={name}
+      onPointerDown={(e) => {
+        // Keeps the release coming here even if the finger slides off the button
+        e.currentTarget.setPointerCapture(e.pointerId);
+        holdControl(control, true);
+      }}
+      onPointerUp={release}
+      onPointerCancel={release}
+      onLostPointerCapture={release}
+      // A long press would otherwise open the context menu on touch screens
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function App() {
   const controlsRef = useRef<ComponentRef<typeof OrbitControls>>(null);
   // Defaults come from localStorage when saved, and every change is saved back
   const controls = useControls({
+    dampCamera: { value: restored("dampCamera", false) },
     showContainer: restored("showContainer", false),
     containerOpacity: { value: restored("containerOpacity", SETTINGS_DEFAULTS.containerOpacity), min: 0, max: 1, step: 0.1 },
     impulseMultiplier: { value: restored("impulseMultiplier", SETTINGS_DEFAULTS.impulseMultiplier), min: 0.0001, max: 100, step: 0.0001 },
     maxBalls: { value: restored("maxBalls", SETTINGS_DEFAULTS.maxBalls), min: 1, max: 50, step: 1 },
     debugState: restored("debugState", false),
+    showJoints: restored("showJoints", false),
     showStats: restored("showStats", false),
     hoverInfo: restored("hoverInfo", true),
     cameraFov: { value: restored("cameraFov", SETTINGS_DEFAULTS.cameraFov), min: 10, max: 100, step: 1 },
     cameraPosition: { value: restored("cameraPosition", SETTINGS_DEFAULTS.cameraPosition) },
+    targetPosition: { value: restored("targetPosition", SETTINGS_DEFAULTS.targetPosition) },
     cameraLookAt: { value: restored("cameraLookAt", SETTINGS_DEFAULTS.cameraLookAt) },
+    cameraZoom: { value: restored("cameraZoom", SETTINGS_DEFAULTS.cameraZoom) },
   });
+
+  const setView1 = () => setViewPosition(1);
+  const setView2 = () => setViewPosition(2);
+  const setView3 = () => setViewPosition(3);
+
+  const views = [
+    [14, 10, 14],
+    [0, 10, 14],
+    [14, 0, 0],
+  ] as [number, number, number][];
+
+  const setViewPosition = (viewNumber: number) => {
+    controls.targetPosition = views[viewNumber - 1];
+  };
+
+
+
+  const DampCamera = () => {
+    useFrame((state, delta) => {
+      // Smoothly damp camera position independent of framerate
+      const maxY = 45.5;
+      const minY = 0;
+
+      // Clamp the camera's Y position between minY and maxY
+      controls.targetPosition[1] = Math.max(minY, Math.min(maxY, state.camera.position.y));
+      controls.dampCamera && easing.damp3(state.camera.position, controls.targetPosition, 0.25, delta);
+    });
+    return null;
+  };
   const serializedControls = JSON.stringify(controls);
   useEffect(() => saveSettings(JSON.parse(serializedControls)), [serializedControls]);
 
@@ -137,6 +196,13 @@ export default function App() {
         <button onClick={() => addBall()}>Random</button>
         <button onClick={() => setSpawns([])}>Reset</button>
         <button onClick={() => togglePausePhysics()}>{isPaused ? "Resume" : "Pause"}</button>
+        <button onClick={setView1}>View 1</button>
+        <button onClick={setView2}>View 2</button>
+        <button onClick={setView3}>View 3</button>
+      </div>
+      <div className="pinballControls">
+        <FlipperButton name="leftBumper" control="leftFlipper">L</FlipperButton>
+        <FlipperButton name="rightBumper" control="rightFlipper">R</FlipperButton>
       </div>
       <div style={{
         display: 'block',
@@ -147,11 +213,9 @@ export default function App() {
         overflowY: 'scroll',
       }}>
         <Leva
-
-
-          fill
-          flat
-          oneLineLabels
+          // fill
+          // flat
+          // oneLineLabels
           collapsed
           titleBar={{
             title: "",
@@ -161,20 +225,35 @@ export default function App() {
           }}
         />
       </div>
-      <Canvas shadows="percentage" camera={{ far: 130, near: 0.1, position: controls.cameraPosition, fov: controls.cameraFov }}>
+      <Canvas shadows="percentage" camera={{ position: [14.5, 10, 14.5], fov: controls.cameraFov }}>
+        {/* DampCamera smoothly moves the camera towards the target position */}
+        <DampCamera />
         {/* Widens the view on portrait phone screens so the arena isn't cropped at the sides */}
-        <PortraitFov fov={controls.cameraFov} minAspect={0.8} />
+        {/* <PortraitFov fov={controls.cameraFov} minAspect={0.8} /> */}
         <directionalLight castShadow position={[10, 30, 10]} />
         <hemisphereLight intensity={1} color="white" groundColor="black" />
         <Environment
-          files="./hdr/evening_road_01_2k.hdr"
-          ground={{ height: 5, radius: 100, scale: 50 }}
-          preset="sunset"
+          files="./hdr/kloofendal_48d_partly_cloudy_puresky_4k.jpeg"
+          ground={{ height: 0, radius: 100, scale: 50 }}
           environmentIntensity={0.2} // Scales the HDRI lighting/reflections (default is 1)
           backgroundIntensity={1}    // Separately controls the background image intensity
         />
+        {/*
+          <Sky distance={450000} sunPosition={[0, 1, 0]} inclination={0} showSunDisk={true} azimuth={-112}  />
+         
+        
+        <Environment background resolution={64}>
+          <mesh scale={100}>
+            <sphereGeometry args={[1, 64, 64]} />
+            <LayerMaterial side={THREE.BackSide}>
+              <Base color="blue" alpha={1} mode="normal" />
+              <Depth colorA="#00ffff" colorB="#ff8f00" alpha={0.5} mode="normal" near={0} far={300} origin={[100, 100, 100]} />
+              <LaminaNoise mapping="local" type="cell" scale={0.5} mode="softlight" />
+            </LayerMaterial>
+          </mesh>
+        </Environment> */}
         {/* Everything interactive and physical lives inside the Physics context */}
-        <Physics gravity={[0, -9.81, 0]} debug={controls.debugState} paused={isPaused}>
+        <Physics gravity={[0, -29.81, 0]} debug={controls.debugState} paused={isPaused}>
           {/* W/A/S/D (or arrows) and space steer the last clicked ball, marked with an aura */}
           <KeyboardControls />
           <SelectedBallAura />
@@ -200,8 +279,11 @@ export default function App() {
             {/* Compile every material up front (hidden balls included) so the first spawn doesn't stutter */}
             <Preload all />
           </Suspense>
-
-          {/* The rings mark the low cup, where the Attractor holds a ball; they fade while it moves */}
+          <Flippers showJoints={controls.showJoints} />
+         <Billboard>
+          <Model name="greenButton" position={[0, 1, 0]} />
+          </Billboard>
+         
           <AttractorField position={FIELD_POSITION} radius={FIELD_RADIUS} active={attractorOn && !catapultTurning} />
           <Catapult
             position={CATAPULT.position}
@@ -226,7 +308,7 @@ export default function App() {
             <Quarterpipe id="quarterpipe4" position={[-4.25, 2 - 0.075, 0]} radius={2} length={8.5} rotation={[0, deg(-90), deg(-90)]} /> */}
 
             {/* Funnel → pipes → halfpipe, tilted by CHUTE_SLOPE so balls roll along */}
-            <group name="chutes" position={[0, 3, -4]} rotation={[0, 0, -CHUTE_SLOPE]}>
+            <group name="chutes" position={[20, 3, -4]} rotation={[0, 0, -CHUTE_SLOPE]}>
               {/* Counter-rotated about its seam with pipe901, so the funnel stays exactly vertical */}
               <group position={FUNNEL_SEAM} rotation={[0, 0, CHUTE_SLOPE]}>
                 <group position={negate(FUNNEL_SEAM)}>
@@ -272,13 +354,32 @@ export default function App() {
               debug={controls.debugState}
             />
           </group>
+          {/* <ContactShadows scale={10} blur={3} opacity={0.25} far={10} /> */}
           <ImpulseMarker />
         </Physics>
 
         <OrbitControls makeDefault ref={controlsRef} target={controls.cameraLookAt} />
+        {/*   <EffectComposer>
+       <DepthOfField focusDistance={1} focalLength={30.02} bokehScale={2} height={1480} />
+        <Bloom luminanceThreshold={0} luminanceSmoothing={0.9} height={300} />
+        <Noise opacity={0.02} />
+        <Vignette eskil={false} offset={0.1} darkness={0.3} />
+        
+        
+      </EffectComposer> */}
       </Canvas>
       {controls.showStats && <Stats className="statsContainer" />}
       {controls.hoverInfo && <DebugPanel />}
     </UtilWrapper>
   );
 }
+
+/*
+function Striplight(props) {
+  return (
+    <mesh {...props}>
+      <boxGeometry />
+      <meshBasicMaterial color="white" />
+    </mesh>
+  )
+} */

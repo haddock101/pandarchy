@@ -4,9 +4,9 @@ import { RigidBody } from "@react-three/rapier";
 function Floor() {
   return (
     <>
-      <RigidBody type="fixed">
-        <mesh position={[28, -1.6, 0]}>
-          <boxGeometry args={[56, 2, 31]} />
+      <RigidBody type="fixed" friction={0.55}>
+        <mesh position={[0, -1.6, 0]}>
+          <boxGeometry args={[105, 2, 31]} />
           <meshStandardMaterial color="chartreuse" />
         </mesh>
       </RigidBody>

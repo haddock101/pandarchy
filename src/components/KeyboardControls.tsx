@@ -18,11 +18,30 @@ const DIRECTION_KEYS = {
   back: ["KeyS", "ArrowDown"],
   left: ["KeyA", "ArrowLeft"],
   right: ["KeyD", "ArrowRight"],
+  leftFlipper: ["KeyA", "ShiftLeft"],
+  rightFlipper: ["KeyL", "ShiftRight"],
 };
 const CONTROL_KEYS = new Set([...Object.values(DIRECTION_KEYS).flat(), "Space"]);
 // A ball moving up or down faster than this is in the air, and can't jump again (set in config.ts)
 const GROUNDED_SPEED = KEYBOARD.groundedSpeed;
 const UP = new THREE.Vector3(0, 1, 0);
+
+type Control = keyof typeof DIRECTION_KEYS;
+
+// The keys held right now, shared so other controls (the flippers) can read them
+const heldKeys = new Set<string>();
+// Controls held through on-screen buttons (the L and R flipper buttons) rather than keys
+const heldButtons = new Set<Control>();
+
+/** Whether this control is held down right now, by any of its keys or by an on-screen button. */
+export const isControlHeld = (control: Control) =>
+  heldButtons.has(control) || DIRECTION_KEYS[control].some((code) => heldKeys.has(code));
+
+/** Holds a control down from an on-screen button, as if one of its keys were pressed, until released. */
+export const holdControl = (control: Control, held: boolean) => {
+  if (held) heldButtons.add(control);
+  else heldButtons.delete(control);
+};
 
 // Keys typed into a text field (Leva's inputs, say) are for the field, not the ball
 const isTyping = (target: EventTarget | null) =>
@@ -34,7 +53,7 @@ const isTyping = (target: EventTarget | null) =>
  * non-QWERTY layouts. Lives inside <Physics>, applying its pushes in step with the simulation.
  */
 export function KeyboardControls({ acceleration = KEYBOARD.acceleration, jumpSpeed = KEYBOARD.jumpSpeed }: KeyboardControlsProps) {
-  const held = useRef(new Set<string>());
+  const held = useRef(heldKeys);
   const jumpQueued = useRef(false);
   const get = useThree((state) => state.get);
   const forward = useRef(new THREE.Vector3());
@@ -55,7 +74,10 @@ export function KeyboardControls({ acceleration = KEYBOARD.acceleration, jumpSpe
       held.current.delete(e.code);
     };
     // Switching tabs or windows mid-press never delivers the key-up, so let go of everything
-    const onBlur = () => held.current.clear();
+    const onBlur = () => {
+      held.current.clear();
+      heldButtons.clear();
+    };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onBlur);

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Billboard } from "@react-three/drei";
+import { Billboard, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 import { getControlledBall, getControlledBallObject } from "../controlledBall.ts";
 import { BALL } from "../config.ts";
+import { Timer } from "three";
 
 type SelectedBallAuraProps = {
   /** Radius of the balls it surrounds. */
@@ -20,6 +21,7 @@ const vertexShader = /* glsl */ `
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
+
 const fragmentShader = /* glsl */ `
   uniform vec3 uColor;
   uniform float uOpacity;
@@ -31,13 +33,14 @@ const fragmentShader = /* glsl */ `
     gl_FragColor = vec4(uColor, glow * glow * uOpacity);
   }
 `;
-const AURA_SCALE = 2.4; // disc radius, in ball radii
+
+const AURA_SCALE = 2.1; // disc radius, in ball radii
 
 // Sparkles: a few soft dots circling the ball at different heights and speeds, each twinkling.
 // (drei's <Sparkles> reads state.clock, which this canary of react-three-fiber no longer has.)
 const SPARKLE_COUNT = 18;
 // Point size in CSS pixels at one unit from the camera; scaled by the screen's pixel ratio each frame
-const SPARKLE_SIZE = 140;
+const SPARKLE_SIZE = 40;
 // Each sparkle's orbit, picked once when the module loads: radius and height in ball radii,
 // angular speed (either way round) and starting angle
 const SPARKLE_SEEDS = new Float32Array(SPARKLE_COUNT * 4);
@@ -130,7 +133,12 @@ export function SelectedBallAura({ ballRadius = BALL.radius, color = "#9ff3ff" }
   );
   useEffect(() => () => material.dispose(), [material]);
 
-  useFrame(({ elapsed, viewport }) => {
+const timer = new Timer();
+
+
+
+  useFrame(({ viewport }) => {
+    const elapsed = timer.getElapsed(); 
     const group = groupRef.current;
     if (!group) return;
     const body = getControlledBall();
@@ -155,11 +163,26 @@ export function SelectedBallAura({ ballRadius = BALL.radius, color = "#9ff3ff" }
   return (
     <group ref={groupRef} visible={false}>
       <Billboard>
-        <mesh ref={discRef} material={material} scale={ballRadius * AURA_SCALE} raycast={() => {}}>
+        <Sparkles
+          ref={sparklesRef}
+          count={50}
+          scale={1.2}
+          size={4}
+          speed={0.4}
+          opacity={0.8}
+          color="#dcf1ff"
+        />
+        <meshPhysicalMaterial
+          roughness={0}
+          color={color}
+          emissive="#dcf1ff"
+          envMapIntensity={0.2}
+        />
+        <mesh ref={sparklesRef} material={material} scale={ballRadius * AURA_SCALE} raycast={() => { }}>
           <circleGeometry args={[1, 48]} />
         </mesh>
       </Billboard>
-      <points ref={sparklesRef} geometry={sparkles.geometry} material={sparkles.material} raycast={() => {}} />
+      <points ref={sparklesRef} geometry={sparkles.geometry} material={sparkles.material} raycast={() => { }} />
     </group>
   );
 }
