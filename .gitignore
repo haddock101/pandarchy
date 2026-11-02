@@ -26,7 +26,39 @@ slask.txt
 src/slask.html
 src/components/cv.tsx
 
+# Archived files
+src/archive/
+
 # Other package managers (this project uses bun)
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+dist-rev
+src/assets/exr/belfast_farmhouse_4k.exr
+src/assets/exr/je_gray_park_4k.exr
+src/assets/exr/kloofendal_48d_partly_cloudy_puresky_4k.exr
+.gitignore
+src/assets/exr/scythian_tombs_2_4k.exr
+public/icons/apple-touch-icon.png
+public/icons/icon-192.png
+public/icons/icon-512.png
+public/icons/icon-maskable-192.png
+public/icons/icon-maskable-512.png
+public/textures/ball_metal_normal.jpeg
+public/textures/ball_metal_normal.webp
+public/textures/black_metal_normal.jpeg
+public/textures/black_metal_normal.webp
+public/textures/board_metal_sheet_normal.jpeg
+public/textures/board_metal_sheet_normal.webp
+public/textures/board_wood_baseColor.jpeg
+public/textures/board_wood_baseColor.webp
+public/textures/brushed02_metallic-brushed02_glossiness.webp
+public/textures/metal03_roughness.webp
+public/gltf/ball_metal_normal.jpg
+public/gltf/ball_metal_normal.webp
+public/gltf/black_metal_normal.jpg
+public/gltf/black_metal_normal.webp
+public/gltf/board_metal_sheet_normal.jpg
+public/gltf/board_metal_sheet_normal.webp
+public/gltf/boxbump.bin
+public/gltf/boxbump.gltf

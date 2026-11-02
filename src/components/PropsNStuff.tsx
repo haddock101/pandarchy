@@ -11,6 +11,9 @@ const deg = THREE.MathUtils.degToRad;
 function PinkMaterial() {
   return <meshStandardMaterial color="hotpink" side={THREE.DoubleSide} />;
 }
+function GreyMaterial() {
+  return <meshStandardMaterial color="grey" side={THREE.DoubleSide} />;
+}
 function ChartreuseMaterial() {
   return <meshStandardMaterial color="chartreuse" side={THREE.DoubleSide} />;
 }
@@ -20,11 +23,13 @@ export function Corner({
   radius,
   rotation,
   position,
+  color,
 }: {
   id: string;
   radius: number;
   rotation?: Euler;
   position?: Vector3;
+  color?: "grey" | "pink";
 }) {
   if (position === undefined) {
     position = [0, radius - 0.078, 0];
@@ -40,7 +45,7 @@ export function Corner({
         <sphereGeometry
           args={[radius, 32, 32, 0, Math.PI / 2, 0, Math.PI / 2]}
         />
-        <PinkMaterial />
+        {color === "pink" ? <PinkMaterial /> : <GreyMaterial />}
       </mesh>
     </RigidBody>
   );
@@ -52,12 +57,14 @@ export function Quarterpipe({
   length,
   rotation,
   position,
+  color,
 }: {
   id: string;
   radius: number;
   length: number;
   rotation?: Euler;
   position?: Vector3;
+  color?: "grey" | "pink";
 }) {
   if (position === undefined) {
     position = [0, radius - 0.078, 0];
@@ -73,7 +80,44 @@ export function Quarterpipe({
         <cylinderGeometry
           args={[radius, radius, length, 32, 1, true, 0, Math.PI / 2]}
         />
-        <PinkMaterial />
+        {color === "pink" ? <PinkMaterial /> : <GreyMaterial />}
+      </mesh>
+    </RigidBody>
+  );
+}
+
+export function ParametricPipe({
+  id,
+  radius,
+  arc,
+  length,
+  rotation,
+  position,
+  color,
+}: {
+  id: string;
+  radius: number;
+  arc: number;
+  length: number;
+  rotation?: Euler;
+  position?: Vector3;
+  color?: "grey" | "pink";
+}) {
+  if (position === undefined) {
+    position = [0, radius - 0.078, 0];
+  }
+  return (
+    <RigidBody name={id} friction={0} type="fixed" colliders="trimesh">
+      <mesh
+        castShadow
+        receiveShadow
+        rotation={rotation}
+        position={position}
+      >
+        <cylinderGeometry
+          args={[radius, radius, length, 32, 1, true, 0, arc ?? Math.PI / 3]}
+        />
+        {color === "pink" ? <PinkMaterial /> : <GreyMaterial />}
       </mesh>
     </RigidBody>
   );
@@ -85,12 +129,14 @@ export function Halfpipe({
   length,
   rotation,
   position,
+  color,
 }: {
   id: string;
   radius: number;
   length: number;
   rotation?: Euler;
   position?: Vector3;
+  color?: "grey" | "pink";
 }) {
   return (
     <RigidBody
@@ -109,7 +155,7 @@ export function Halfpipe({
         <cylinderGeometry
           args={[radius, radius, length, 32, 1, true, 0, Math.PI]}
         />
-        <PinkMaterial />
+        {color === "pink" ? <PinkMaterial /> : <GreyMaterial />}  
       </mesh>
     </RigidBody>
   );

@@ -5,6 +5,7 @@ import { IMPULSE_LAYER } from "./impulse.ts";
 import { IS_TOUCH_SCREEN } from "../touch.ts";
 import { TOUCH } from "../config.ts";
 
+
 type GreenButtonProps = ThreeElements["group"] & {
   position?: [number, number, number];
   /** Brighter glow while the pointer is over it. */
@@ -30,9 +31,11 @@ function GreenButton({ position = [-2, 0.05, 0], hovered = false, lit = true, ..
   const ripple = useRef<THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>>(null);
   // Each button starts its pulse at a different moment, so two side by side don't blink in unison
   const phase = useMemo(() => position[0] * 1.7, [position]);
-
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime + phase;
+  const timer = new THREE.Timer();
+  useFrame(({  }) => {
+    
+    const elapsed = timer.getElapsed(); 
+    const t = elapsed + phase;
     const material = capMaterial.current;
     if (material) {
       const breathe = 0.5 + 0.5 * Math.sin(t * PULSE_SPEED);

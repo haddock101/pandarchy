@@ -19,13 +19,25 @@ import { clearHoverTarget, setHoverTarget, num, vec, type HoverTarget } from "..
 
 const SPHERE_SEGMENTS = 64; // Number of segments for the sphere geometry
 
-const BALL_TEXTURES = {
-  bumpMap: "/textures/sphereMap.jpg",
-  roughnessMap: "/textures/sphereMap.jpg",
-  aoMap: "/textures/stripe.jpg",
+const PINBALL_TEXTURES = {
+ // map: "./textures/metal03_green_diffuse.jpg",
+  roughnessMap: "./textures/brushed02_specular.jpg",
+  bumpMap: "./textures/metal03_roughness.webp",
+  aoMap: "./textures/metal03_normal_opengl.jpg",
+ // normalMap: "./textures/ball_metal_normal.webp"
+};
+
+const FUZZY_BALL_TEXTURES = { 
+  // map: "./textures/metal03_green_diffuse.jpg",
+  // metalnessMap: "./textures/brushed02_specular.jpg",
+  // normalMap: "./textures/ball_metal_normal.webp",
+  bumpMap: "./textures/brushed02_specular.jpg",
+  roughnessMap: "./textures/brushed02_specular.jpg",
+  aoMap: "./textures/brushed02_specular.jpg",
 };
 // Start loading right away, so the first ball doesn't suspend the scene (the black flash).
-useTexture.preload(Object.values(BALL_TEXTURES));
+useTexture.preload(Object.values(PINBALL_TEXTURES));
+useTexture.preload(Object.values(FUZZY_BALL_TEXTURES));
 
 // Where pooled balls wait, disabled, until they're spawned.
 const PARKED = { x: 0, y: -100, z: 0 };
@@ -38,13 +50,14 @@ const noRaycast = () => {};
 export type BallSpawn = {
   seq: number;
   position: [number, number, number];
+  ballStyle?: "fuzzy" | "pinball";
   colors: [string, string];
   friction?: number;
 };
 
 // Gap between the marker's tip and the hovered surface.
 const MARKER_GAP = 0.005;
-const MARKER_SIZE = 0.25;
+const MARKER_SIZE = 0.025;
 const MARKER_COLOR_EMPTY = new THREE.Color("white");
 const MARKER_COLOR_FULL = new THREE.Color("red");
 
@@ -54,6 +67,7 @@ markerRaycaster.layers.set(IMPULSE_LAYER);
 const hitNormal = new THREE.Vector3();
 
 type BouncingBallProps = {
+  ballStyle?: "fuzzy" | "pinball";
   name: string;
   /** Null keeps the ball parked: disabled, hidden and out of the simulation. */
   spawn: BallSpawn | null;
@@ -79,6 +93,7 @@ export function BouncingBall({
   impulseDivisor,
   restitution,
   friction,
+  ballStyle = "fuzzy",
   ccd = false,
   canSleep = true,
   togglePhysics,
@@ -89,15 +104,15 @@ export function BouncingBall({
   const ballObjectRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   useCursor(hovered);
-  const textures = useTexture(BALL_TEXTURES);
-
+  
   const active = spawn !== null;
   const [colorA, colorB] = spawn?.colors ?? ["white", "white"];
   // Each push flips the colour; counting per spawn means a re-spawned ball starts on colorA again.
   const [flips, setFlips] = useState({ seq: -1, count: 0 });
   const flipCount = flips.seq === spawn?.seq ? flips.count : 0;
   const color = flipCount % 2 === 0 ? colorA : colorB;
-
+  const textures = useTexture(ballStyle === "pinball" ? PINBALL_TEXTURES : FUZZY_BALL_TEXTURES);
+  
   // Move the physics body to its spawn point (or park it) without remounting anything.
   useEffect(() => {
     const body = ballRef.current;
@@ -144,7 +159,7 @@ export function BouncingBall({
       ];
     },
   });
-
+  
   return (
     <RigidBody
       name={name}
@@ -293,7 +308,7 @@ export function ImpulseMarker() {
       </mesh>
       {/* Unit-height cylinder lying along +Z (towards the surface); scaled to the pull distance each frame */}
       <mesh ref={stemRef} rotation-x={Math.PI / 2} visible={false}>
-        <cylinderGeometry args={[0.005, 0.075, 1, 5]} />
+        <cylinderGeometry args={[0.015*MARKER_SIZE, 0.33*MARKER_SIZE, 1, 5]} />
         <meshStandardMaterial color="white" emissive="skyblue" opacity={0.1} roughness={0.01} emissiveIntensity={1} />
       </mesh>
     </group>
