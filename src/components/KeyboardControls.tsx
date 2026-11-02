@@ -18,8 +18,9 @@ const DIRECTION_KEYS = {
   back: ["KeyS", "ArrowDown"],
   left: ["KeyA", "ArrowLeft"],
   right: ["KeyD", "ArrowRight"],
-  leftFlipper: ["KeyA", "ShiftLeft"],
-  rightFlipper: ["KeyL", "ShiftRight"],
+  leftFlipper: ["KeyZ", "ShiftLeft"],
+  rightFlipper: ["KeyM", "ShiftRight"],
+  dropBall: ["KeyG", "KeyQ"]
 };
 const CONTROL_KEYS = new Set([...Object.values(DIRECTION_KEYS).flat(), "Space"]);
 // A ball moving up or down faster than this is in the air, and can't jump again (set in config.ts)
@@ -59,6 +60,7 @@ export function KeyboardControls({ acceleration = KEYBOARD.acceleration, jumpSpe
   const forward = useRef(new THREE.Vector3());
   const right = useRef(new THREE.Vector3());
   const push = useRef(new THREE.Vector3());
+  
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -97,7 +99,8 @@ export function KeyboardControls({ acceleration = KEYBOARD.acceleration, jumpSpe
     const keys = held.current;
     const pressed = (codes: string[]) => (codes.some((code) => keys.has(code)) ? 1 : 0);
     const ahead = pressed(DIRECTION_KEYS.ahead) - pressed(DIRECTION_KEYS.back);
-    const side = pressed(DIRECTION_KEYS.right) - pressed(DIRECTION_KEYS.left);
+    const side = pressed(DIRECTION_KEYS.right) - pressed(DIRECTION_KEYS.left);   
+   
     if (ahead || side) {
       // The camera's view direction, flattened onto the floor
       const fwd = get().camera.getWorldDirection(forward.current).setY(0).normalize();
@@ -109,6 +112,8 @@ export function KeyboardControls({ acceleration = KEYBOARD.acceleration, jumpSpe
       jumpQueued.current = false;
       if (Math.abs(ball.linvel().y) < GROUNDED_SPEED) ball.applyImpulse({ x: 0, y: jumpSpeed * ball.mass(), z: 0 }, true);
     }
+    
+    
   });
 
   return null;

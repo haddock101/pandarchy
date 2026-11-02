@@ -5,9 +5,14 @@
 //  - pure looks (marker, aura, button glow, mesh detail): at the top of each component
 //  - the chute pieces' layout and seams: App.tsx, next to the pieces themselves
 
+export const PINBALL_RADIUS = 0.0135 * 0.8; // 27 mm diameter
+export const PINBALL_DENSITY = 7.83; // 7.83 g/cm³, density of steel
+// Slanted board should be approximately 70 cm by 130 cm.
+export const GLOBAL_SCALE_OFFSET = 0.03;
+
 const deg = (degrees: number) => (degrees * Math.PI) / 180;
 type Vec3 = [number, number, number];
-
+export const WORLD_GRAVITY = -9.81;
 export const SCENE = {
   /** Top of the checkered floor in world space (the floor boxes in Wall.tsx, under App's 0.2 vertical scale). */
   floorY: -0.08,
@@ -19,37 +24,46 @@ export const SCENE = {
 
 /** Defaults for the Leva settings panel; once changed there, the browser remembers the new values. */
 export const SETTINGS_DEFAULTS = {
-  impulseMultiplier: 10,
+  impulseMultiplier: 0.000001,
   maxBalls: 12,
   containerOpacity: 0.4,
-  cameraFov: 49,
-  cameraPosition: [14.5, 13.5, 24.5] as Vec3,
-  targetPosition: [14.5, 13.5, 24.5] as Vec3,
-  cameraLookAt: [0, 10, 0] as Vec3,
-  cameraZoom: 1,
+  cameraFov: 229,
+  cameraPosition: [1.94, 1.30, 0] as Vec3,
+  targetPosition: [1.94, 1.30, 0] as Vec3,
+  cameraLookAt: [1.5, 1.2, 0] as Vec3,
+  cameraZoom: 0.1,
 };
 
+// CoR for pinballs (restitution): 0.60 to 0.70 steel on steel. Rubber rings and bumpers 0.75-0.85. Flippers and pop bumpers 1.0
+// Rolling friction is typically much lower than sliding friction, so the balls keep rolling easily.
+// Crr: rolling friction coefficient ~0.0005 to ~0.0002
+// Kinetic (Sliding) Friction: ~0.15 to 0.25
+// Static Friction: ~0.30 to 0.4
+// A standard clear-coated maple playfield is glossy and slick. Lower friction values mean the ball will slide longer before its rotational velocity catches up to its linear velocity to resume "pure rolling". If you are coding a physics engine, a playfield friction setting of roughly 0.2 balances sliding realism without making the ball feel like it's traveling over ice
+// Friction approx: 0.2
+
+
 export const BALL = {
-  radius: 0.5,
-  density: 1,
-  restitution: 0.1,
-  friction: 0.3,
+  radius: PINBALL_RADIUS,
+  density: PINBALL_DENSITY,
+  restitution: 0.7,
+  friction: 0.2,
   /** Friction for balls dropped into the catapult's cup with "Load", so they stay put. */
-  loadedFriction: 0.55,
+  loadedFriction: 0.2,
   /** Air drag everywhere outside the chute; the catapult throws are tuned with it. */
-  linearDamping: 0.4,
+  linearDamping: 0.1,
   /** Drag while touching a chute piece. The usual drag caps chute speed at g·sin(slope)/damping. */
-  chuteLinearDamping: 0.01,
+  chuteLinearDamping: 0.001,
   /** A full-charge push is impulseMultiplier / pushDivisor. */
   pushDivisor: 1,
   /** Where "Random" drops balls: a `spread`-wide square starting at x, z, at this height. */
-  randomDrop: { x: -4, z: -2, spread: 0.5, height: 8.5 },
+  randomDrop: { x: -0.692, z: 0.08, spread: 0.015, height: 0.20 },
 };
 
 /** Press-drag-release pushes, on balls and the catapult's buttons. */
 export const PUSH = {
   /** How far the marker is pulled back from the surface at full charge, in world units. */
-  maxPull: 2.5,
+  maxPull: 0.25,
   /** A plain click or tap still gives this much of a full push. */
   minCharge: 0.1,
 };
@@ -66,7 +80,7 @@ export const TOUCH = {
 
 export const CATAPULT = {
   /** Where the bottom of the base cone stands; the catapult turns around this point. */
-  position: [20-0.025, SCENE.floorY, 1.525] as Vec3,
+  position: [-19.025, SCENE.floorY + 3.22, 2.525] as Vec3,
   /** Turn around the vertical axis. The raised cup should end up under the end of halfpipe2. */
   yaw: deg(-35),
   /** Light enough that a ball (mass ~0.5) landing in a cup tips the arm. Pushes scale with it. */

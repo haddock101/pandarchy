@@ -30,3 +30,5 @@ export const generateSeededKey = (seedInput: string | number, prefix = "buddy") 
   const predictableId = Math.floor(seededRandom() * 100000).toString(36).padStart(4, '0');
   return `${prefix}-${randomQuirk}-${randomAnimal}-${predictableId}`;
 };
+
+export default generateSeededKey;

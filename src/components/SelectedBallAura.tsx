@@ -4,7 +4,7 @@ import { Billboard, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 import { getControlledBall, getControlledBallObject } from "../controlledBall.ts";
 import { BALL } from "../config.ts";
-import { Timer } from "three";
+
 
 type SelectedBallAuraProps = {
   /** Radius of the balls it surrounds. */
@@ -34,13 +34,13 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-const AURA_SCALE = 2.1; // disc radius, in ball radii
+const AURA_SCALE = 0.61; // disc radius, in ball radii
 
 // Sparkles: a few soft dots circling the ball at different heights and speeds, each twinkling.
-// (drei's <Sparkles> reads state.clock, which this canary of react-three-fiber no longer has.)
+// (drei's <Sparkles> reads clock, which this canary of react-three-fiber no longer has.)
 const SPARKLE_COUNT = 18;
 // Point size in CSS pixels at one unit from the camera; scaled by the screen's pixel ratio each frame
-const SPARKLE_SIZE = 40;
+const SPARKLE_SIZE = 0.040;
 // Each sparkle's orbit, picked once when the module loads: radius and height in ball radii,
 // angular speed (either way round) and starting angle
 const SPARKLE_SEEDS = new Float32Array(SPARKLE_COUNT * 4);
@@ -133,12 +133,14 @@ export function SelectedBallAura({ ballRadius = BALL.radius, color = "#9ff3ff" }
   );
   useEffect(() => () => material.dispose(), [material]);
 
-const timer = new Timer();
+  const timer = new THREE.Timer();
 
 
 
   useFrame(({ viewport }) => {
     const elapsed = timer.getElapsed(); 
+   // const delta = timer.getDelta();
+    
     const group = groupRef.current;
     if (!group) return;
     const body = getControlledBall();
@@ -154,6 +156,7 @@ const timer = new Timer();
     if (disc) disc.material.uniforms.uOpacity.value = 0.45 + 0.2 * Math.sin(elapsed * 2.5);
     const points = sparklesRef.current;
     if (points) {
+      
       points.material.uniforms.uTime.value = elapsed;
       // gl_PointSize is in device pixels, so on high-density screens points would otherwise shrink
       points.material.uniforms.uSize.value = SPARKLE_SIZE * viewport.dpr;
@@ -166,8 +169,8 @@ const timer = new Timer();
         <Sparkles
           ref={sparklesRef}
           count={50}
-          scale={1.2}
-          size={4}
+          scale={3.12}
+          size={0.082}
           speed={0.4}
           opacity={0.8}
           color="#dcf1ff"

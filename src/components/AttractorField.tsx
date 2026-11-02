@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, type Vector3 } from "@react-three/fiber";
 import * as THREE from "three";
-import { Timer } from "three";
+
 
 type AttractorFieldProps = {
   /** Centre of the field, on the floor. */
@@ -82,7 +82,7 @@ export function AttractorField({
   );
   useEffect(() => () => material.dispose(), [material]);
 
-  const timer = new Timer();
+  const timer = new THREE.Timer();
   
 
   useFrame((_, delta) => {

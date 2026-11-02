@@ -1,7 +1,7 @@
+import { Resvg } from '@resvg/resvg-js';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Resvg } from '@resvg/resvg-js';
 import type { Plugin } from 'vite';
 
 // Renders public/favicon.svg into the icons the web app manifest and iOS ask for (see index.html and
@@ -11,7 +11,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = join(ROOT, 'public/favicon.svg');
 const OUT_DIR = join(ROOT, 'public/icons');
 // The app's own background (index.css), behind the icons that can't be transparent
-const BACKGROUND = '#111111';
+const BACKGROUND = 'aqua';
 
 type Icon = {
   file: string;
@@ -24,14 +24,14 @@ type Icon = {
 
 const ICONS: Icon[] = [
   // Chrome's install prompt and app launcher
-  { file: 'icon-192.png', size: 192, fill: 0.9 },
-  { file: 'icon-512.png', size: 512, fill: 0.9 },
+  { file: 'icon-192.png', size: 192, fill: 0.99 },
+  { file: 'icon-512.png', size: 512, fill: 0.99 },
   // Android crops these to its own shape, keeping only a circle 80% across; at 0.62 even a square graphic's
   // corners stay inside it
-  { file: 'icon-maskable-192.png', size: 192, fill: 0.62, opaque: true },
-  { file: 'icon-maskable-512.png', size: 512, fill: 0.62, opaque: true },
+  { file: 'icon-maskable-192.png', size: 192, fill: 0.82, opaque: true },
+  { file: 'icon-maskable-512.png', size: 512, fill: 0.82, opaque: true },
   // iOS fills transparency with black and rounds the corners itself
-  { file: 'apple-touch-icon.png', size: 180, fill: 0.78, opaque: true },
+  { file: 'apple-touch-icon.png', size: 180, fill: 0.88, opaque: true },
 ];
 
 const attr = (tag: string, name: string) => tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1];
