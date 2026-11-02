@@ -29,6 +29,9 @@ src/components/cv.tsx
 # Archived files
 src/archive/
 
+# Archived files
+src/archive/
+
 # Other package managers (this project uses bun)
 package-lock.json
 yarn.lock
